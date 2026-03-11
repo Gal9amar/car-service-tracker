@@ -24,11 +24,11 @@ async function request(url, options = {}) {
 // Auth
 export const auth = {
   register: (data) => request('/auth/register', { method: 'POST', body: data }),
+  verify: (data) => request('/auth/verify', { method: 'POST', body: data }),
   login: (data) => request('/auth/login', { method: 'POST', body: data }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   update: (data) => request('/auth/me', { method: 'PUT', body: data }),
-  googleUrl: () => `${API_BASE}/auth/google`,
 };
 
 // Vehicles
@@ -96,4 +96,5 @@ export const dashboard = {
 export const reports = {
   vehiclePdfUrl: (vehicleId) => `${API_BASE}/reports/vehicles/${vehicleId}/pdf`,
 };
+
 
