@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2 } from 'lucide-react';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 export default function VehicleDetailPage() {
@@ -76,33 +76,73 @@ export default function VehicleDetailPage() {
   );
 }
 
+// ─── Services Tab ────────────────────────────────────────────────────────────
+
 function ServicesTab({ vehicleId, services, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', description: '' });
+  const [deletingId, setDeletingId] = useState(null);
+  const emptyForm = { serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', description: '' };
+  const [form, setForm] = useState(emptyForm);
+
+  const openAdd = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); };
+  const openEdit = (s) => {
+    setForm({
+      serviceType: s.serviceType,
+      date: s.date ? s.date.split('T')[0] : '',
+      cost: s.cost ?? '',
+      mileage: s.mileage ?? '',
+      description: s.description ?? '',
+    });
+    setEditingId(s.id);
+    setShowForm(true);
+  };
+  const closeForm = () => { setShowForm(false); setEditingId(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await servicesApi.create({ vehicleId, serviceType: form.serviceType, date: form.date, cost: Number(form.cost), mileage: form.mileage ? Number(form.mileage) : undefined, description: form.description || undefined });
-      setShowForm(false);
-      setForm({ serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', description: '' });
+      const payload = {
+        vehicleId,
+        serviceType: form.serviceType,
+        date: form.date,
+        cost: Number(form.cost),
+        mileage: form.mileage ? Number(form.mileage) : undefined,
+        description: form.description || undefined,
+      };
+      if (editingId) {
+        await servicesApi.update(editingId, payload);
+      } else {
+        await servicesApi.create(payload);
+      }
+      closeForm();
       onRefresh();
     } catch (err) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('למחוק טיפול זה?')) return;
+    setDeletingId(id);
+    try {
+      await servicesApi.delete(id);
+      onRefresh();
+    } catch (err) { alert(err.message); } finally { setDeletingId(null); }
   };
 
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">טיפולים ({services.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
+        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
           {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף טיפול</>}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 space-y-4 slide-up">
+          <h4 className="font-semibold">{editingId ? 'עריכת טיפול' : 'טיפול חדש'}</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">סוג טיפול</label>
@@ -116,13 +156,13 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[60px]" placeholder="פרטים נוספים..." /></div>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}שמור טיפול
+            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן טיפול' : 'שמור טיפול'}
           </button>
         </form>
       )}
 
       {services.length === 0 && !showForm ? (
-        <EmptyState text="אין טיפולים רשומים" icon="🔧" action="הוסף טיפול ראשון" onAction={() => setShowForm(true)} />
+        <EmptyState text="אין טיפולים רשומים" icon="🔧" action="הוסף טיפול ראשון" onAction={openAdd} />
       ) : services.map(s => (
         <div key={s.id} className="card p-4 flex items-center gap-4">
           <span className="text-2xl">{SERVICE_TYPE_ICONS[s.serviceType] || '🔧'}</span>
@@ -135,26 +175,60 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
             <p className="font-bold">{formatCurrency(Number(s.cost))}</p>
             {s.mileage && <p className="text-xs text-surface-500">{formatNumber(s.mileage)} ק״מ</p>}
           </div>
+          <div className="flex gap-1">
+            <button onClick={() => openEdit(s)} className="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="ערוך">
+              <Pencil size={16} />
+            </button>
+            <button onClick={() => handleDelete(s.id)} disabled={deletingId === s.id} className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="מחק">
+              {deletingId === s.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
+// ─── Expenses Tab ────────────────────────────────────────────────────────────
+
 function ExpensesTab({ vehicleId, expenses, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ category: 'FUEL', date: new Date().toISOString().split('T')[0], amount: '', description: '' });
+  const [deletingId, setDeletingId] = useState(null);
+  const emptyForm = { category: 'FUEL', date: new Date().toISOString().split('T')[0], amount: '', description: '' };
+  const [form, setForm] = useState(emptyForm);
+
+  const openAdd = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); };
+  const openEdit = (e) => {
+    setForm({ category: e.category, date: e.date ? e.date.split('T')[0] : '', amount: e.amount ?? '', description: e.description ?? '' });
+    setEditingId(e.id);
+    setShowForm(true);
+  };
+  const closeForm = () => { setShowForm(false); setEditingId(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await expensesApi.create({ vehicleId, category: form.category, date: form.date, amount: Number(form.amount), description: form.description || undefined });
-      setShowForm(false);
-      setForm({ category: 'FUEL', date: new Date().toISOString().split('T')[0], amount: '', description: '' });
+      const payload = { vehicleId, category: form.category, date: form.date, amount: Number(form.amount), description: form.description || undefined };
+      if (editingId) {
+        await expensesApi.update(editingId, payload);
+      } else {
+        await expensesApi.create(payload);
+      }
+      closeForm();
       onRefresh();
     } catch (err) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('למחוק הוצאה זו?')) return;
+    setDeletingId(id);
+    try {
+      await expensesApi.delete(id);
+      onRefresh();
+    } catch (err) { alert(err.message); } finally { setDeletingId(null); }
   };
 
   const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -163,13 +237,14 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">הוצאות ({expenses.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
+        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
           {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף הוצאה</>}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 space-y-4 slide-up">
+          <h4 className="font-semibold">{editingId ? 'עריכת הוצאה' : 'הוצאה חדשה'}</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">קטגוריה</label>
@@ -182,7 +257,7 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[60px]" placeholder="פרטים נוספים..." /></div>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}שמור הוצאה
+            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן הוצאה' : 'שמור הוצאה'}
           </button>
         </form>
       )}
@@ -195,7 +270,7 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
       )}
 
       {expenses.length === 0 && !showForm ? (
-        <EmptyState text="אין הוצאות רשומות" icon="💰" action="הוסף הוצאה ראשונה" onAction={() => setShowForm(true)} />
+        <EmptyState text="אין הוצאות רשומות" icon="💰" action="הוסף הוצאה ראשונה" onAction={openAdd} />
       ) : expenses.map(e => (
         <div key={e.id} className="card p-4 flex items-center gap-4">
           <span className="text-2xl">{EXPENSE_CATEGORY_ICONS[e.category] || '📦'}</span>
@@ -205,39 +280,87 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
             {e.description && <p className="text-sm text-surface-400">{e.description}</p>}
           </div>
           <p className="font-bold">{formatCurrency(Number(e.amount))}</p>
+          <div className="flex gap-1">
+            <button onClick={() => openEdit(e)} className="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="ערוך">
+              <Pencil size={16} />
+            </button>
+            <button onClick={() => handleDelete(e.id)} disabled={deletingId === e.id} className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="מחק">
+              {deletingId === e.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
+// ─── Reminders Tab ───────────────────────────────────────────────────────────
+
 function RemindersTab({ vehicleId, reminders, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ reminderType: 'OIL', title: '', dueDate: '', dueMileage: '', intervalMonths: '' });
+  const [deletingId, setDeletingId] = useState(null);
+  const emptyForm = { reminderType: 'OIL', title: '', dueDate: '', dueMileage: '', intervalMonths: '' };
+  const [form, setForm] = useState(emptyForm);
+
+  const openAdd = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); };
+  const openEdit = (r) => {
+    setForm({
+      reminderType: r.reminderType,
+      title: r.title ?? '',
+      dueDate: r.dueDate ? r.dueDate.split('T')[0] : '',
+      dueMileage: r.dueMileage ?? '',
+      intervalMonths: r.intervalMonths ?? '',
+    });
+    setEditingId(r.id);
+    setShowForm(true);
+  };
+  const closeForm = () => { setShowForm(false); setEditingId(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await remindersApi.create({ vehicleId, reminderType: form.reminderType, title: form.title, dueDate: form.dueDate || undefined, dueMileage: form.dueMileage ? Number(form.dueMileage) : undefined, intervalMonths: form.intervalMonths ? Number(form.intervalMonths) : undefined });
-      setShowForm(false);
-      setForm({ reminderType: 'OIL', title: '', dueDate: '', dueMileage: '', intervalMonths: '' });
+      const payload = {
+        vehicleId,
+        reminderType: form.reminderType,
+        title: form.title,
+        dueDate: form.dueDate || undefined,
+        dueMileage: form.dueMileage ? Number(form.dueMileage) : undefined,
+        intervalMonths: form.intervalMonths ? Number(form.intervalMonths) : undefined,
+      };
+      if (editingId) {
+        await remindersApi.update(editingId, payload);
+      } else {
+        await remindersApi.create(payload);
+      }
+      closeForm();
       onRefresh();
     } catch (err) { alert(err.message); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('למחוק תזכורת זו?')) return;
+    setDeletingId(id);
+    try {
+      await remindersApi.delete(id);
+      onRefresh();
+    } catch (err) { alert(err.message); } finally { setDeletingId(null); }
   };
 
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">תזכורות ({reminders.length})</h3>
-        <button onClick={() => setShowForm(!showForm)} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
+        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
           {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף תזכורת</>}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 space-y-4 slide-up">
+          <h4 className="font-semibold">{editingId ? 'עריכת תזכורת' : 'תזכורת חדשה'}</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">סוג</label>
@@ -251,13 +374,13 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
             <div><label className="label">חזרה כל (חודשים)</label><input type="number" value={form.intervalMonths} onChange={e => setForm({...form, intervalMonths: e.target.value})} className="input" placeholder="12" dir="ltr" /></div>
           </div>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}שמור תזכורת
+            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן תזכורת' : 'שמור תזכורת'}
           </button>
         </form>
       )}
 
       {reminders.length === 0 && !showForm ? (
-        <EmptyState text="אין תזכורות" icon="🔔" action="הוסף תזכורת ראשונה" onAction={() => setShowForm(true)} />
+        <EmptyState text="אין תזכורות" icon="🔔" action="הוסף תזכורת ראשונה" onAction={openAdd} />
       ) : reminders.map(r => (
         <div key={r.id} className={`card p-4 flex items-center gap-4 ${r.dueDate && new Date(r.dueDate) < new Date() ? 'border-red-200' : ''}`}>
           <span className="text-2xl">🔔</span>
@@ -269,11 +392,21 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
             {r.dueDate && <p className={`text-sm font-medium ${new Date(r.dueDate) < new Date() ? 'text-red-500' : 'text-surface-600'}`}>{formatDate(r.dueDate)}</p>}
             {r.dueMileage && <p className="text-xs text-surface-500">{formatNumber(r.dueMileage)} ק״מ</p>}
           </div>
+          <div className="flex gap-1">
+            <button onClick={() => openEdit(r)} className="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="ערוך">
+              <Pencil size={16} />
+            </button>
+            <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="מחק">
+              {deletingId === r.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+          </div>
         </div>
       ))}
     </div>
   );
 }
+
+// ─── Details Tab ─────────────────────────────────────────────────────────────
 
 function DetailsTab({ vehicle }) {
   const fields = [
