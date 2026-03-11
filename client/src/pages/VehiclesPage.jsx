@@ -233,8 +233,8 @@ function EditModal({ vehicle, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white dark:bg-surface-800 rounded-2xl w-full max-w-sm shadow-2xl" dir="rtl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-surface-800 rounded-2xl w-full max-w-sm shadow-2xl my-auto" dir="rtl">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-100 dark:border-surface-700">
           <p className="font-bold text-lg">עריכת רכב</p>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors">
