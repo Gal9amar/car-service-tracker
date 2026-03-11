@@ -115,11 +115,11 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 bg-surface-100 rounded-xl p-1 overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 bg-surface-100 dark:bg-surface-800 rounded-xl p-1 overflow-x-auto scrollbar-hide">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              tab === t.id ? 'bg-white shadow-sm text-brand-700' : 'text-surface-500 hover:text-surface-700'}`}>
+              tab === t.id ? 'bg-white dark:bg-surface-700 shadow-sm text-brand-700 dark:text-brand-400' : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'}`}>
             <t.icon size={15} />
             <span>{t.label}</span>
             {t.count !== undefined && <span className="text-xs bg-surface-200 px-1 py-0.5 rounded-full leading-none">{t.count}</span>}
