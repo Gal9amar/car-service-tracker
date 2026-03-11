@@ -154,6 +154,65 @@ export default function DashboardPage() {
   );
 }
 
+
+function IsraeliPlate({ number }) {
+  // Format: 1234567 -> 123-45-678 or 12-345-67
+  const fmt = (n) => {
+    const d = (n || '').replace(/[^0-9]/g, '');
+    if (d.length === 7) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
+    if (d.length === 8) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
+    return n;
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'stretch',
+      borderRadius: '8px',
+      border: '3px solid #1a1a1a',
+      overflow: 'hidden',
+      height: '52px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+      direction: 'ltr',
+    }}>
+      {/* Blue IL strip */}
+      <div style={{
+        background: '#003399',
+        width: '44px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '2px',
+        padding: '4px 2px',
+        flexShrink: 0,
+      }}>
+        <span style={{ fontSize: '14px', lineHeight: 1 }}>🇮🇱</span>
+        <span style={{ color: 'white', fontSize: '9px', fontWeight: 800, letterSpacing: '0.5px', lineHeight: 1 }}>IL</span>
+        <span style={{ color: 'white', fontSize: '7px', lineHeight: 1 }}>ישראל</span>
+      </div>
+      {/* Yellow plate area */}
+      <div style={{
+        background: '#F5C400',
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{
+          fontSize: '24px',
+          fontWeight: 900,
+          color: '#1a1a1a',
+          letterSpacing: '3px',
+          fontFamily: 'monospace',
+        }}>
+          {fmt(number)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function VehicleCard({ vehicle }) {
   const status = testStatus(vehicle.testExpiry);
   const testBadgeStyle = {
@@ -186,12 +245,9 @@ function VehicleCard({ vehicle }) {
 
       {/* Info grid */}
       <div className="grid grid-cols-3 gap-2">
-        {/* License plate */}
-        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
-          <p className="text-xs text-surface-400 mb-0.5">מספר רכב</p>
-          <p className="text-sm font-bold text-surface-800 dark:text-white font-mono tracking-wide" >
-            {vehicle.licensePlate}
-          </p>
+        {/* License plate — full width Israeli style */}
+        <div className="col-span-3">
+          <IsraeliPlate number={vehicle.licensePlate} />
         </div>
 
         {/* Year */}
@@ -201,7 +257,7 @@ function VehicleCard({ vehicle }) {
         </div>
 
         {/* Test */}
-        <div className={`rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
+        <div className={`col-span-2 rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
           <p className="text-xs opacity-70 mb-0.5">טסט</p>
           <p className="text-sm font-bold leading-tight">
             {vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
