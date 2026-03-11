@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USERS
+// ============================================
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  name         String
+  googleId     String?  @unique @map("google_id")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  vehicles      Vehicle[]
+  garageReviews GarageReview[]
+  garagesAdded  Garage[]       @relation("GarageCreator")
+
+  @@map("users")
+}
+
+// ============================================
+// VEHICLES
+// ============================================
+model Vehicle {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  licensePlate    String   @map("license_plate")
+  manufacturer    String
+  model           String
+  year            Int
+  color           String?
+  fuelType        String?  @map("fuel_type")
+  engineModel     String?  @map("engine_model")
+  trim            String?
+  vin             String?
+  frontTire       String?  @map("front_tire")
+  rearTire        String?  @map("rear_tire")
+  testExpiry      DateTime? @map("test_expiry") @db.Date
+  lastTest        DateTime? @map("last_test") @db.Date
+  firstRegistered String?  @map("first_registered")
+  currentMileage  Int?     @map("current_mileage")
+  imageUrl        String?  @map("image_url")
+  nickname        String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services  Service[]
+  expenses  Expense[]
+  reminders Reminder[]
+
+  @@unique([userId, licensePlate])
+  @@map("vehicles")
+}
+
+// ============================================
+// SERVICE TYPES
+// ============================================
+enum ServiceType {
+  OIL
+  BRAKES
+  TIRES
+  BATTERY
+  TEST
+  AC
+  TIMING_BELT
+  FILTERS
+  SUSPENSION
+  ELECTRICAL
+  BODY_WORK
+  GENERAL
+  OTHER
+}
+
+// ============================================
+// SERVICES (maintenance records)
+// ============================================
+model Service {
+  id            String      @id @default(uuid())
+  vehicleId     String      @map("vehicle_id")
+  serviceType   ServiceType @map("service_type")
+  description   String?
+  date          DateTime    @db.Date
+  mileage       Int?
+  cost          Decimal     @db.Decimal(10, 2)
+  garageId      String?     @map("garage_id")
+  warrantyUntil DateTime?   @map("warranty_until") @db.Date
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  vehicle     Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  garage      Garage?             @relation(fields: [garageId], references: [id])
+  attachments ServiceAttachment[]
+
+  @@map("services")
+}
+
+// ============================================
+// SERVICE ATTACHMENTS
+// ============================================
+model ServiceAttachment {
+  id        String   @id @default(uuid())
+  serviceId String   @map("service_id")
+  fileUrl   String   @map("file_url")
+  fileName  String   @map("file_name")
+  fileType  String   @map("file_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("service_attachments")
+}
+
+// ============================================
+// EXPENSE CATEGORIES
+// ============================================
+enum ExpenseCategory {
+  FUEL
+  PARKING
+  FINE
+  INSURANCE
+  LICENSE
+  TOLL
+  WASH
+  ACCESSORIES
+  OTHER
+}
+
+// ============================================
+// EXPENSES
+// ============================================
+model Expense {
+  id          String          @id @default(uuid())
+  vehicleId   String          @map("vehicle_id")
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime        @db.Date
+  description String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+// ============================================
+// REMINDER TYPES
+// ============================================
+enum ReminderType {
+  TEST
+  OIL
+  INSURANCE
+  LICENSE
+  TIRES
+  BRAKES
+  CUSTOM
+}
+
+// ============================================
+// REMINDERS
+// ============================================
+model Reminder {
+  id             String       @id @default(uuid())
+  vehicleId      String       @map("vehicle_id")
+  reminderType   ReminderType @map("reminder_type")
+  title          String
+  dueDate        DateTime?    @map("due_date") @db.Date
+  dueMileage     Int?         @map("due_mileage")
+  intervalMonths Int?         @map("interval_months")
+  intervalKm     Int?         @map("interval_km")
+  isActive       Boolean      @default(true) @map("is_active")
+  lastNotified   DateTime?    @map("last_notified")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
+}
+
+// ============================================
+// GARAGES
+// ============================================
+model Garage {
+  id          String   @id @default(uuid())
+  name        String
+  address     String?
+  city        String?
+  phone       String?
+  lat         Float?
+  lng         Float?
+  specialties String[] @default([])
+  createdBy   String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator  User?          @relation("GarageCreator", fields: [createdBy], references: [id])
+  services Service[]
+  reviews  GarageReview[]
+
+  @@map("garages")
+}
+
+// ============================================
+// GARAGE REVIEWS
+// ============================================
+model GarageReview {
+  id        String   @id @default(uuid())
+  garageId  String   @map("garage_id")
+  userId    String   @map("user_id")
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  garage Garage @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([garageId, userId])
+  @@map("garage_reviews")
+}
