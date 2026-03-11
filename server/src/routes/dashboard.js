@@ -18,7 +18,7 @@ router.get('/', async (req, res, next) => {
     const vehicles = await prisma.vehicle.findMany({
       where: { userId },
       include: {
-        services: { orderBy: { date: 'desc' }, take: 1 },
+        services: { orderBy: { date: 'desc' }, take: 1, select: { date: true, serviceType: true, mileage: true, nextServiceMileage: true, cost: true } },
         _count: { select: { services: true, expenses: true } },
       },
     });
@@ -81,7 +81,13 @@ router.get('/', async (req, res, next) => {
           imageUrl: v.imageUrl,
           currentMileage: v.currentMileage,
           testExpiry: v.testExpiry,
-          lastService: v.services[0] || null,
+          lastService: v.services[0] ? {
+            date: v.services[0].date,
+            serviceType: v.services[0].serviceType,
+            mileage: v.services[0].mileage,
+            nextServiceMileage: v.services[0].nextServiceMileage,
+            cost: v.services[0].cost,
+          } : null,
           serviceCount: v._count.services,
           expenseCount: v._count.expenses,
         })),
