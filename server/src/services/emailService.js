@@ -2,7 +2,7 @@
 // שירות שליחת מיילים דרך Resend
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Car Tracker <notifications@cartracker.co.il>';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Car Tracker <onboarding@resend.dev>';
 
 export async function sendEmail({ to, subject, html }) {
   if (!RESEND_API_KEY) {
