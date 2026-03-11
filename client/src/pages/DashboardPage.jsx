@@ -156,55 +156,55 @@ export default function DashboardPage() {
 
 
 function IsraeliPlate({ number }) {
-  // Format: 1234567 -> 123-45-678 or 12-345-67
   const fmt = (n) => {
     const d = (n || '').replace(/[^0-9]/g, '');
-    if (d.length === 7) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
+    if (d.length === 7) return `${d.slice(0,2)}-${d.slice(2,5)}-${d.slice(5)}`;
     if (d.length === 8) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
     return n;
   };
 
   return (
     <div style={{
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'stretch',
-      borderRadius: '8px',
+      borderRadius: '7px',
       border: '3px solid #1a1a1a',
       overflow: 'hidden',
-      height: '52px',
+      height: '46px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
       direction: 'ltr',
     }}>
       {/* Blue IL strip */}
       <div style={{
         background: '#003399',
-        width: '44px',
+        width: '36px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '2px',
-        padding: '4px 2px',
+        gap: '1px',
+        padding: '3px 2px',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: '14px', lineHeight: 1 }}>🇮🇱</span>
-        <span style={{ color: 'white', fontSize: '9px', fontWeight: 800, letterSpacing: '0.5px', lineHeight: 1 }}>IL</span>
-        <span style={{ color: 'white', fontSize: '7px', lineHeight: 1 }}>ישראל</span>
+        <span style={{ fontSize: '12px', lineHeight: 1 }}>🇮🇱</span>
+        <span style={{ color: 'white', fontSize: '8px', fontWeight: 800, letterSpacing: '0.5px', lineHeight: 1 }}>IL</span>
+        <span style={{ color: 'white', fontSize: '6px', lineHeight: 1 }}>ישראל</span>
       </div>
       {/* Yellow plate area */}
       <div style={{
         background: '#F5C400',
-        flex: 1,
+        padding: '0 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
         <span style={{
-          fontSize: '24px',
+          fontSize: '22px',
           fontWeight: 900,
           color: '#1a1a1a',
-          letterSpacing: '3px',
+          letterSpacing: '2px',
           fontFamily: 'monospace',
+          whiteSpace: 'nowrap',
         }}>
           {fmt(number)}
         </span>
@@ -245,8 +245,8 @@ function VehicleCard({ vehicle }) {
 
       {/* Info grid */}
       <div className="grid grid-cols-3 gap-2">
-        {/* License plate — full width Israeli style */}
-        <div className="col-span-3">
+        {/* License plate — Israeli style */}
+        <div className="col-span-3 flex justify-center">
           <IsraeliPlate number={vehicle.licensePlate} />
         </div>
 
