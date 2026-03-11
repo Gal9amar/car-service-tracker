@@ -217,8 +217,6 @@ function EditModal({ vehicle, onSave, onClose }) {
   const [form, setForm] = useState({
     nickname:       vehicle.nickname || '',
     currentMileage: vehicle.currentMileage || '',
-    color:          vehicle.color || '',
-    fuelType:       vehicle.fuelType || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -228,8 +226,6 @@ function EditModal({ vehicle, onSave, onClose }) {
       await onSave({
         nickname:       form.nickname || null,
         currentMileage: form.currentMileage ? Number(form.currentMileage) : null,
-        color:          form.color || null,
-        fuelType:       form.fuelType || null,
       });
     } finally {
       setSaving(false);
