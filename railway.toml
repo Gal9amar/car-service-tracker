@@ -1,8 +1,6 @@
 [build]
 builder = "nixpacks"
-
-[build.environment]
-NODE_ENV = "production"
+buildCommand = "cd client && npm install && npm run build && cd ../server && npm install && npx prisma generate"
 
 [deploy]
 startCommand = "cd server && npx prisma migrate deploy && npm start"
