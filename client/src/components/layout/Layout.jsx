@@ -1,7 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  LayoutDashboard, Car, Wrench, PlusCircle, Settings, LogOut, Menu, X, MapPin
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -9,7 +8,6 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'דשבורד' },
   { to: '/vehicles', icon: Car, label: 'הרכבים שלי' },
   { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף רכב' },
-  { to: '/garages', icon: MapPin, label: 'מוסכים' },
   { to: '/settings', icon: Settings, label: 'הגדרות' },
 ];
 
@@ -118,3 +116,4 @@ export default function Layout() {
     </div>
   );
 }
+
