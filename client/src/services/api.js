@@ -15,7 +15,7 @@ async function request(url, options = {}) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || 'Something went wrong');
+    throw new Error(data.error || 'אירעה שגיאה, נסה שוב');
   }
 
   return data;
