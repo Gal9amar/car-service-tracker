@@ -244,10 +244,6 @@ function EditModal({ vehicle, onSave, onClose }) {
 
         <div className="p-5 space-y-4">
           <div>
-            <p className="text-xs text-surface-500 mb-1">{vehicle.manufacturer} {vehicle.model} · {vehicle.licensePlate}</p>
-          </div>
-
-          <div>
             <label className="label">כינוי</label>
             <input type="text" value={form.nickname} onChange={e => setForm({...form, nickname: e.target.value})}
               className="input" placeholder='לדוגמה: "הרכב של אבא"' />
@@ -257,18 +253,6 @@ function EditModal({ vehicle, onSave, onClose }) {
             <label className="label">קילומטראז׳</label>
             <input type="number" value={form.currentMileage} onChange={e => setForm({...form, currentMileage: e.target.value})}
               className="input" placeholder="120000" dir="ltr" />
-          </div>
-
-          <div>
-            <label className="label">צבע</label>
-            <input type="text" value={form.color} onChange={e => setForm({...form, color: e.target.value})}
-              className="input" placeholder="אפור" />
-          </div>
-
-          <div>
-            <label className="label">סוג דלק</label>
-            <input type="text" value={form.fuelType} onChange={e => setForm({...form, fuelType: e.target.value})}
-              className="input" placeholder="בנזין" />
           </div>
         </div>
 
