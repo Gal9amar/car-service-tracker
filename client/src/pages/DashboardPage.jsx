@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { dashboard } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, ChevronLeft, AlertTriangle, Gauge, Calendar, Wrench } from 'lucide-react';
-import { formatCurrency, formatDate } from '../utils/constants';
+import { Plus, ChevronLeft, AlertTriangle, Calendar } from 'lucide-react';
+import { formatDate } from '../utils/constants';
+
+function testStatus(testExpiry) {
+  if (!testExpiry) return null;
+  const d = new Date(testExpiry);
+  const now = new Date();
+  if (d < now) return 'expired';
+  if (d < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) return 'soon';
+  return 'ok';
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -27,9 +36,6 @@ export default function DashboardPage() {
 
   if (!data) return <p className="text-center text-surface-500">שגיאה בטעינת הנתונים</p>;
 
-  const totalThisMonth = data.monthlySpend?.total || 0;
-  const totalServices = data.monthlySpend?.services || 0;
-  const totalExpenses = data.monthlySpend?.expenses || 0;
   const overdueCount = data.overdueReminders?.length || 0;
   const upcomingCount = data.upcomingReminders?.length || 0;
 
@@ -48,24 +54,6 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Big numbers — monthly summary */}
-      <div className="bg-gradient-to-br from-brand-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl shadow-brand-500/20">
-        <p className="text-sm text-white/60 mb-1">סה״כ הוצאות החודש</p>
-        <p className="text-5xl font-black tracking-tight mb-5">
-          {formatCurrency(totalThisMonth)}
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/10 rounded-2xl px-4 py-3">
-            <p className="text-xs text-white/60 mb-1">🔧 טיפולים</p>
-            <p className="text-xl font-bold">{formatCurrency(totalServices)}</p>
-          </div>
-          <div className="bg-white/10 rounded-2xl px-4 py-3">
-            <p className="text-xs text-white/60 mb-1">💳 הוצאות</p>
-            <p className="text-xl font-bold">{formatCurrency(totalExpenses)}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Alert strip */}
       {(overdueCount > 0 || upcomingCount > 0) && (
         <div className="flex gap-3">
@@ -82,18 +70,11 @@ export default function DashboardPage() {
             <div className="flex-1 flex items-center gap-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
               <Calendar size={18} className="text-amber-500 shrink-0" />
               <div>
-                <p className="text-xs text-amber-500">קרובות</p>
+                <p className="text-xs text-amber-500">תזכורות קרובות</p>
                 <p className="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">{upcomingCount}</p>
               </div>
             </div>
           )}
-          <div className="flex-1 flex items-center gap-2.5 bg-surface-100 dark:bg-surface-800 rounded-2xl px-4 py-3">
-            <Wrench size={18} className="text-surface-400 shrink-0" />
-            <div>
-              <p className="text-xs text-surface-400">רכבים</p>
-              <p className="text-2xl font-black text-surface-700 dark:text-surface-200 leading-none">{data.vehicleCount}</p>
-            </div>
-          </div>
         </div>
       )}
 
@@ -121,7 +102,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Vehicles list */}
+      {/* Vehicles */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-surface-900 dark:text-white">הרכבים שלי</h2>
@@ -140,7 +121,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {data.vehicles.map(v => <VehicleRow key={v.id} vehicle={v} />)}
+            {data.vehicles.map(v => <VehicleCard key={v.id} vehicle={v} />)}
           </div>
         )}
       </div>
@@ -173,41 +154,60 @@ export default function DashboardPage() {
   );
 }
 
-function VehicleRow({ vehicle }) {
-  const testExpiry = vehicle.testExpiry ? new Date(vehicle.testExpiry) : null;
-  const testBadge = !testExpiry ? null
-    : testExpiry < new Date()
-      ? { text: `טסט פג — ${formatDate(vehicle.testExpiry)}`, cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' }
-      : testExpiry < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
-        ? { text: `טסט: ${formatDate(vehicle.testExpiry)}`, cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }
-        : { text: `טסט: ${formatDate(vehicle.testExpiry)}`, cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
+function VehicleCard({ vehicle }) {
+  const status = testStatus(vehicle.testExpiry);
+  const testBadgeStyle = {
+    expired: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+    soon:    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    ok:      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  };
 
   return (
     <Link to={`/vehicles/${vehicle.id}`}
-      className="flex items-center gap-4 bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-4 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all group">
-      <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">
-        🚗
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-surface-900 dark:text-white truncate">
-          {vehicle.nickname || `${vehicle.manufacturer} ${vehicle.model}`}
-        </p>
-        <div className="flex items-center gap-3 mt-1 flex-wrap">
-          <span className="text-xs text-surface-400 font-mono" dir="ltr">{vehicle.licensePlate}</span>
-          {vehicle.currentMileage && (
-            <span className="flex items-center gap-1 text-xs text-surface-400">
-              <Gauge size={11} />{vehicle.currentMileage.toLocaleString('he-IL')} ק״מ
-            </span>
-          )}
-          <span className="text-xs text-surface-400">{vehicle.serviceCount} טיפולים</span>
+      className="block bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-5 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all group">
+
+      {/* Top: make/model + arrow */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">
+            🚗
+          </div>
+          <div>
+            <p className="font-bold text-surface-900 dark:text-white leading-tight">
+              {vehicle.manufacturer} {vehicle.model}
+            </p>
+            {vehicle.nickname && (
+              <p className="text-xs text-surface-400">{vehicle.nickname}</p>
+            )}
+          </div>
         </div>
-        {testBadge && (
-          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-lg mt-1.5 ${testBadge.cls}`}>
-            {testBadge.text}
-          </span>
-        )}
+        <ChevronLeft size={18} className="text-surface-300 group-hover:text-brand-500 transition-colors shrink-0" />
       </div>
-      <ChevronLeft size={18} className="text-surface-300 group-hover:text-brand-500 transition-colors shrink-0" />
+
+      {/* Info grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {/* License plate */}
+        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
+          <p className="text-xs text-surface-400 mb-0.5">מספר רכב</p>
+          <p className="text-sm font-bold text-surface-800 dark:text-white font-mono tracking-wide" dir="ltr">
+            {vehicle.licensePlate}
+          </p>
+        </div>
+
+        {/* Year */}
+        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
+          <p className="text-xs text-surface-400 mb-0.5">שנת ייצור</p>
+          <p className="text-sm font-bold text-surface-800 dark:text-white">{vehicle.year}</p>
+        </div>
+
+        {/* Test */}
+        <div className={`rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
+          <p className="text-xs opacity-70 mb-0.5">טסט</p>
+          <p className="text-sm font-bold leading-tight">
+            {vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
+          </p>
+        </div>
+      </div>
     </Link>
   );
 }
