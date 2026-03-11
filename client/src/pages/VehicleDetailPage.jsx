@@ -198,9 +198,11 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">טיפולים ({services.length})</h3>
-        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
-          {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף טיפול</>}
-        </button>
+        {!showForm && (
+          <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+            <Plus size={16} />הוסף טיפול
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -216,12 +218,19 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
             <div><label className="label">תאריך</label><input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" required /></div>
             <div><label className="label">עלות (₪)</label><input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} className="input" placeholder="0" required dir="ltr" /></div>
             <div><label className="label">קילומטראז׳ נוכחי</label><input type="number" value={form.mileage} onChange={e => setForm({...form, mileage: e.target.value})} className="input" placeholder="120000" dir="ltr" /></div>
-            <div><label className="label">ק״מ לטיפול הבא</label><input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="130000" dir="ltr" /></div>
+            {form.serviceType === 'PERIODIC' && (
+              <div><label className="label">ק״מ לטיפול הבא</label><input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="130000" dir="ltr" /></div>
+            )}
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[60px]" placeholder="פרטים נוספים..." /></div>
-          <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן טיפול' : 'שמור טיפול'}
-          </button>
+          <div className="flex gap-3">
+            <button type="button" onClick={closeForm} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+              <X size={16} />ביטול
+            </button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן' : 'שמור'}
+            </button>
+          </div>
         </form>
       )}
 
@@ -302,9 +311,11 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">הוצאות ({expenses.length})</h3>
-        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
-          {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף הוצאה</>}
-        </button>
+        {!showForm && (
+          <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+            <Plus size={16} />הוסף הוצאה
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -321,9 +332,14 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
             <div><label className="label">סכום (₪)</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="input" placeholder="0" required dir="ltr" /></div>
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[60px]" placeholder="פרטים נוספים..." /></div>
-          <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן הוצאה' : 'שמור הוצאה'}
-          </button>
+          <div className="flex gap-3">
+            <button type="button" onClick={closeForm} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+              <X size={16} />ביטול
+            </button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן' : 'שמור'}
+            </button>
+          </div>
         </form>
       )}
 
@@ -418,9 +434,11 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-bold">תזכורות ({reminders.length})</h3>
-        <button onClick={showForm ? closeForm : openAdd} className={showForm ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
-          {showForm ? <><X size={16} />ביטול</> : <><Plus size={16} />הוסף תזכורת</>}
-        </button>
+        {!showForm && (
+          <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+            <Plus size={16} />הוסף תזכורת
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -438,9 +456,14 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
             <div><label className="label">קילומטראז׳ יעד</label><input type="number" value={form.dueMileage} onChange={e => setForm({...form, dueMileage: e.target.value})} className="input" placeholder="150000" dir="ltr" /></div>
             <div><label className="label">חזרה כל (חודשים)</label><input type="number" value={form.intervalMonths} onChange={e => setForm({...form, intervalMonths: e.target.value})} className="input" placeholder="12" dir="ltr" /></div>
           </div>
-          <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן תזכורת' : 'שמור תזכורת'}
-          </button>
+          <div className="flex gap-3">
+            <button type="button" onClick={closeForm} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+              <X size={16} />ביטול
+            </button>
+            <button type="submit" disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}{editingId ? 'עדכן' : 'שמור'}
+            </button>
+          </div>
         </form>
       )}
 
