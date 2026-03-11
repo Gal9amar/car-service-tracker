@@ -469,10 +469,12 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
 
 function DetailsTab({ vehicle }) {
   const fields = [
-    ['יצרן', vehicle.manufacturer], ['דגם', vehicle.model], ['שנה', vehicle.year],
-    ['צבע', vehicle.color], ['דלק', vehicle.fuelType], ['מנוע', vehicle.engineModel],
-    ['גימור', vehicle.trim], ['מספר שלדה', vehicle.vin], ['צמיג קדמי', vehicle.frontTire],
-    ['צמיג אחורי', vehicle.rearTire], ['עלייה לכביש', vehicle.firstRegistered],
+    ['מספר רכב', vehicle.licensePlate], ['יצרן', vehicle.manufacturer], ['דגם', vehicle.model],
+    ['שנה', vehicle.year], ['צבע', vehicle.color], ['דלק', vehicle.fuelType],
+    ['מנוע', vehicle.engineModel], ['גימור', vehicle.trim], ['מספר שלדה', vehicle.vin],
+    ['צמיג קדמי', vehicle.frontTire], ['צמיג אחורי', vehicle.rearTire],
+    ['עלייה לכביש', vehicle.firstRegistered], ['בעלות', vehicle.ownership],
+    ['טסט אחרון', vehicle.lastTest], ['תוקף טסט', vehicle.testExpiry],
   ];
   return (
     <div className="card p-6">
