@@ -189,7 +189,7 @@ function VehicleCard({ vehicle }) {
         {/* License plate */}
         <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
           <p className="text-xs text-surface-400 mb-0.5">מספר רכב</p>
-          <p className="text-sm font-bold text-surface-800 dark:text-white font-mono tracking-wide" dir="ltr">
+          <p className="text-sm font-bold text-surface-800 dark:text-white font-mono tracking-wide" >
             {vehicle.licensePlate}
           </p>
         </div>
