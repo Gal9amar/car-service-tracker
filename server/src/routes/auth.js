@@ -7,9 +7,9 @@ import { generateToken, setTokenCookie, authenticate } from '../middleware/auth.
 const router = Router();
 
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('כתובת מייל לא תקינה'),
+  password: z.string().min(6, 'הסיסמה חייבת להכיל לפחות 6 תווים'),
+  name: z.string().min(2, 'השם חייב להכיל לפחות 2 תווים'),
 });
 
 const loginSchema = z.object({
@@ -26,7 +26,7 @@ router.post('/register', async (req, res, next) => {
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return res.status(409).json({ error: 'Email already registered.' });
+      return res.status(409).json({ error: 'כתובת המייל כבר רשומה במערכת.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -53,12 +53,12 @@ router.post('/login', async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      return res.status(401).json({ error: 'אימייל או סיסמה שגויים.' });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      return res.status(401).json({ error: 'אימייל או סיסמה שגויים.' });
     }
 
     const token = generateToken(user.id);
