@@ -16,8 +16,11 @@ model User {
   passwordHash String?  @map("password_hash")
   name         String
   googleId     String?  @unique @map("google_id")
-  avatarUrl    String?  @map("avatar_url")
-  createdAt    DateTime @default(now()) @map("created_at")
+  avatarUrl      String?  @map("avatar_url")
+  isVerified     Boolean  @default(false) @map("is_verified")
+  verifyCode     String?  @map("verify_code")
+  verifyExpires  DateTime? @map("verify_expires")
+  createdAt      DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   vehicles      Vehicle[]
@@ -223,3 +226,4 @@ model GarageReview {
   @@unique([garageId, userId])
   @@map("garage_reviews")
 }
+
