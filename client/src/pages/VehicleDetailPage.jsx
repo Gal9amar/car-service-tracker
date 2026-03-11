@@ -69,26 +69,28 @@ export default function VehicleDetailPage() {
         <ArrowRight size={16} />חזרה לרכבים
       </Link>
 
+      {/* PDF button above header */}
+      <div className="flex justify-start">
+        <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
+          className="flex items-center gap-1.5 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors text-surface-600 dark:text-surface-300 text-xs font-semibold px-3 py-2 rounded-xl">
+          <FileText size={14} />דוח PDF
+        </a>
+      </div>
+
       {/* Vehicle header card */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-slate-950 rounded-3xl p-5 text-white shadow-xl">
 
-        {/* Top row: emoji + name + PDF button */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">
-              {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" /> : '🚗'}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold leading-tight">
-                {vehicle.manufacturer} {vehicle.model}
-              </h1>
-              {vehicle.nickname && <p className="text-sm text-white/50">{vehicle.nickname}</p>}
-            </div>
+        {/* Top row: emoji + name */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">
+            {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" /> : '🚗'}
           </div>
-          <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
-            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 transition-colors text-white text-xs font-semibold px-3 py-2 rounded-xl">
-            <FileText size={14} />דוח PDF
-          </a>
+          <div>
+            <h1 className="text-xl font-bold leading-tight">
+              {vehicle.manufacturer} {vehicle.model}
+            </h1>
+            {vehicle.nickname && <p className="text-sm text-white/50">{vehicle.nickname}</p>}
+          </div>
         </div>
 
         {/* Israeli plate */}
@@ -99,7 +101,7 @@ export default function VehicleDetailPage() {
         {/* Info grid */}
         <div className="grid grid-cols-3 gap-2">
           <InfoTile label="שנת ייצור" value={vehicle.year} />
-          <InfoTile label="קילומטראז׳" value={vehicle.currentMileage ? `${formatNumber(vehicle.currentMileage)} ק״מ` : '—'} />
+          <InfoTile label="קילומטראז׳" value={vehicle.currentMileage ? formatNumber(vehicle.currentMileage) : '—'} />
           <InfoTile
             label="טסט"
             value={vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
