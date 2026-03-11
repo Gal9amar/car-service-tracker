@@ -142,7 +142,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const emptyForm = { serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', description: '' };
+  const emptyForm = { serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', nextServiceMileage: '', description: '' };
   const [form, setForm] = useState(emptyForm);
 
   const openAdd = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); };
@@ -152,6 +152,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
       date: s.date ? s.date.split('T')[0] : '',
       cost: s.cost ?? '',
       mileage: s.mileage ?? '',
+      nextServiceMileage: s.nextServiceMileage ?? '',
       description: s.description ?? '',
     });
     setEditingId(s.id);
@@ -169,6 +170,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
         date: form.date,
         cost: Number(form.cost),
         mileage: form.mileage ? Number(form.mileage) : undefined,
+        nextServiceMileage: form.nextServiceMileage ? Number(form.nextServiceMileage) : undefined,
         description: form.description || undefined,
       };
       if (editingId) {
@@ -211,7 +213,8 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
             </div>
             <div><label className="label">תאריך</label><input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" required /></div>
             <div><label className="label">עלות (₪)</label><input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} className="input" placeholder="0" required dir="ltr" /></div>
-            <div><label className="label">קילומטראז׳</label><input type="number" value={form.mileage} onChange={e => setForm({...form, mileage: e.target.value})} className="input" placeholder="120000" dir="ltr" /></div>
+            <div><label className="label">קילומטראז׳ נוכחי</label><input type="number" value={form.mileage} onChange={e => setForm({...form, mileage: e.target.value})} className="input" placeholder="120000" dir="ltr" /></div>
+            <div><label className="label">ק״מ לטיפול הבא</label><input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="130000" dir="ltr" /></div>
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[60px]" placeholder="פרטים נוספים..." /></div>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
@@ -233,6 +236,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
           <div className="text-left">
             <p className="font-bold">{formatCurrency(Number(s.cost))}</p>
             {s.mileage && <p className="text-xs text-surface-500">{formatNumber(s.mileage)} ק״מ</p>}
+            {s.nextServiceMileage && <p className="text-xs text-brand-500 font-medium">הבא: {formatNumber(s.nextServiceMileage)} ק״מ</p>}
           </div>
           <div className="flex gap-1">
             <button onClick={() => openEdit(s)} className="p-2 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors" title="ערוך">
