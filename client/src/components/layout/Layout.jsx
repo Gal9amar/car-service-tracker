@@ -1,19 +1,17 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Car, PlusCircle, Settings, Wrench, LogOut, X, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, Car, PlusCircle, Settings, LogOut } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'דשבורד' },
-  { to: '/vehicles', icon: Car, label: 'הרכבים שלי' },
-  { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף רכב' },
+  { to: '/vehicles', icon: Car, label: 'רכבים' },
+  { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף' },
   { to: '/settings', icon: Settings, label: 'הגדרות' },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -21,97 +19,65 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700">
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2">
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-        <h1 className="font-display font-bold text-lg text-brand-700 dark:text-brand-400">
+    <div className="min-h-screen flex flex-col bg-surface-50 dark:bg-surface-950">
+
+      {/* Top header */}
+      <header className="sticky top-0 z-40 bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 px-4 py-3 flex items-center justify-between">
+        <h1 className="font-display font-bold text-lg text-brand-700 dark:text-brand-400 flex items-center gap-2">
           🚗 מעקב טיפולים
         </h1>
-        <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">
-          {user?.name?.charAt(0)}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300 overflow-hidden">
+            {user?.avatarUrl
+              ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              : user?.name?.charAt(0)
+            }
+          </div>
+          <button
+            onClick={handleLogout}
+            className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            title="התנתקות"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 right-0 z-50 w-64 bg-white dark:bg-surface-800
-        border-l border-surface-200 dark:border-surface-700
-        transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto
-        ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}
-        flex flex-col
-      `}>
-        {/* Logo */}
-        <div className="p-6 border-b border-surface-200 dark:border-surface-700">
-          <h1 className="font-display font-bold text-xl text-brand-700 dark:text-brand-400 flex items-center gap-2">
-            <Wrench size={24} />
-            מעקב טיפולים
-          </h1>
-          <p className="text-xs text-surface-500 mt-1">ניהול חכם לרכב שלך</p>
+      {/* Main content */}
+      <main className="flex-1 px-4 py-6 pb-24 overflow-auto">
+        <div className="max-w-2xl mx-auto">
+          <Outlet />
         </div>
+      </main>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+      {/* Bottom nav bar */}
+      <nav className="fixed bottom-0 inset-x-0 z-50 bg-white dark:bg-surface-800 border-t border-surface-200 dark:border-surface-700 safe-area-bottom">
+        <div className="flex items-stretch h-16 max-w-lg mx-auto">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
-              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                `flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
-                    : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700/50'
+                    ? 'text-brand-600 dark:text-brand-400'
+                    : 'text-surface-400 dark:text-surface-500 hover:text-surface-600'
                 }`
               }
             >
-              <Icon size={20} />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-brand-50 dark:bg-brand-900/30' : ''}`}>
+                    <Icon size={20} />
+                  </div>
+                  <span>{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
-        </nav>
-
-        {/* User section */}
-        <div className="p-4 border-t border-surface-200 dark:border-surface-700">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-              ) : (
-                user?.name?.charAt(0)
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
-              <p className="text-xs text-surface-500 truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 w-full text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-          >
-            <LogOut size={18} />
-            התנתקות
-          </button>
         </div>
-      </aside>
+      </nav>
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Main content */}
-      <main className="flex-1 lg:p-8 p-4 overflow-auto">
-        <div className="max-w-6xl mx-auto">
-          <Outlet />
-        </div>
-      </main>
     </div>
   );
 }
