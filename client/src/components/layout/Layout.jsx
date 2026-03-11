@@ -5,7 +5,7 @@ import { LayoutDashboard, Car, PlusCircle, Settings, LogOut } from 'lucide-react
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'דשבורד' },
   { to: '/vehicles', icon: Car, label: 'רכבים' },
-  { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף' },
+  { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף רכב' },
   { to: '/settings', icon: Settings, label: 'הגדרות' },
 ];
 
