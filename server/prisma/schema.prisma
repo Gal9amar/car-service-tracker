@@ -95,8 +95,9 @@ model Service {
   mileage       Int?
   cost          Decimal     @db.Decimal(10, 2)
   garageId      String?     @map("garage_id")
-  warrantyUntil DateTime?   @map("warranty_until") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at")
+  warrantyUntil      DateTime?   @map("warranty_until") @db.Date
+  nextServiceMileage Int?        @map("next_service_mileage")
+  createdAt          DateTime    @default(now()) @map("created_at")
 
   vehicle     Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   garage      Garage?             @relation(fields: [garageId], references: [id])
