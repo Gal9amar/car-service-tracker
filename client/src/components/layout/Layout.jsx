@@ -27,12 +27,9 @@ export default function Layout() {
           🚗 מעקב טיפולים
         </h1>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300 overflow-hidden">
-            {user?.avatarUrl
-              ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-              : user?.name?.charAt(0)
-            }
-          </div>
+          <span className="text-sm font-semibold text-surface-700 dark:text-surface-200 truncate max-w-[120px]">
+            {user?.name}
+          </span>
           <button
             onClick={handleLogout}
             className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
