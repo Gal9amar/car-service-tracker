@@ -96,3 +96,4 @@ export const dashboard = {
 export const reports = {
   vehiclePdfUrl: (vehicleId) => `${API_BASE}/reports/vehicles/${vehicleId}/pdf`,
 };
+
