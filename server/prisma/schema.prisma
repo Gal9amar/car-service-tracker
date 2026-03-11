@@ -68,6 +68,7 @@ model Vehicle {
 // SERVICE TYPES
 // ============================================
 enum ServiceType {
+  PERIODIC
   OIL
   BRAKES
   TIRES
