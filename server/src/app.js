@@ -14,7 +14,6 @@ import vehicleRoutes from './routes/vehicles.js';
 import serviceRoutes from './routes/services.js';
 import expenseRoutes from './routes/expenses.js';
 import reminderRoutes from './routes/reminders.js';
-import garageRoutes from './routes/garages.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
 import { startReminderCron } from './services/reminderCron.js';
@@ -56,7 +55,6 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/reminders', reminderRoutes);
-app.use('/api/garages', garageRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 
@@ -90,3 +88,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
