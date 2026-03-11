@@ -7,6 +7,59 @@ const router = Router();
 router.use(authenticate);
 
 // ============================================
+// Overpass API — חיפוש מוסכים מ-OpenStreetMap
+// ============================================
+async function searchGaragesFromOSM(city, search) {
+  // בניית שאילתת Overpass QL
+  const areaQuery = city
+    ? `area[name="${city}"][admin_level~"^[4-8]$"]->.searchArea;`
+    : '';
+
+  const nameFilter = search ? `["name"~"${search}",i]` : '';
+
+  const query = `
+    [out:json][timeout:15];
+    ${areaQuery}
+    (
+      node["shop"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
+      way["shop"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
+      node["amenity"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
+    );
+    out center 50;
+  `;
+
+  const response = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+
+  if (!response.ok) throw new Error('Overpass API error');
+
+  const data = await response.json();
+
+  return data.elements.map((el) => {
+    const tags = el.tags || {};
+    const lat = el.lat ?? el.center?.lat ?? null;
+    const lng = el.lon ?? el.center?.lon ?? null;
+
+    return {
+      id: `osm-${el.type}-${el.id}`,
+      name: tags.name || tags['name:he'] || 'מוסך',
+      address: [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' ') || null,
+      city: tags['addr:city'] || tags['addr:place'] || city || null,
+      phone: tags.phone || tags['contact:phone'] || null,
+      lat,
+      lng,
+      specialties: [],
+      avgRating: null,
+      source: 'osm',
+      _count: { reviews: 0, services: 0 },
+    };
+  });
+}
+
+// ============================================
 // GET /api/garages?city=xxx&search=xxx
 // ============================================
 router.get('/', async (req, res, next) => {
@@ -14,6 +67,7 @@ router.get('/', async (req, res, next) => {
     const { city, search, page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
+    // 1. חפש קודם ב-DB המקומי
     const where = {};
     if (city) where.city = { contains: city, mode: 'insensitive' };
     if (search) {
@@ -24,7 +78,7 @@ router.get('/', async (req, res, next) => {
       ];
     }
 
-    const [garages, total] = await Promise.all([
+    const [dbGarages, total] = await Promise.all([
       prisma.garage.findMany({
         where,
         include: {
@@ -38,16 +92,33 @@ router.get('/', async (req, res, next) => {
       prisma.garage.count({ where }),
     ]);
 
-    // Calculate average rating
-    const garagesWithRating = garages.map(g => {
+    const garagesWithRating = dbGarages.map((g) => {
       const avgRating = g.reviews.length
         ? g.reviews.reduce((sum, r) => sum + r.rating, 0) / g.reviews.length
         : null;
       const { reviews, ...rest } = g;
-      return { ...rest, avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null };
+      return { ...rest, avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null, source: 'db' };
     });
 
-    res.json({ garages: garagesWithRating, total, page: Number(page), limit: Number(limit) });
+    // 2. אם ה-DB ריק — שלוף מ-OpenStreetMap
+    if (garagesWithRating.length === 0) {
+      try {
+        const osmGarages = await searchGaragesFromOSM(city, search);
+        return res.json({
+          garages: osmGarages,
+          total: osmGarages.length,
+          page: 1,
+          limit: osmGarages.length,
+          source: 'osm',
+        });
+      } catch (osmErr) {
+        console.error('Overpass API error:', osmErr.message);
+        // אם OSM נכשל — החזר רשימה ריקה בצורה נקייה
+        return res.json({ garages: [], total: 0, page: Number(page), limit: Number(limit), source: 'osm_error' });
+      }
+    }
+
+    res.json({ garages: garagesWithRating, total, page: Number(page), limit: Number(limit), source: 'db' });
   } catch (err) {
     next(err);
   }
