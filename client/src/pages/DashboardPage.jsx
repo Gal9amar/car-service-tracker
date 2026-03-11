@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { dashboard } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Plus, ChevronLeft, AlertTriangle, Calendar } from 'lucide-react';
-import { formatDate } from '../utils/constants';
+import { formatDate, formatNumber, SERVICE_TYPES } from '../utils/constants';
 
 function testStatus(testExpiry) {
   if (!testExpiry) return null;
@@ -264,6 +264,37 @@ function VehicleCard({ vehicle }) {
           </p>
         </div>
       </div>
+
+      {/* Last service & next service */}
+      {vehicle.lastService && (
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-surface-100 dark:border-surface-700 pt-3">
+          <div className="bg-surface-50 dark:bg-surface-700/40 rounded-xl px-3 py-2">
+            <p className="text-xs text-surface-400 mb-0.5">טיפול קודם</p>
+            <p className="text-xs font-bold text-surface-700 dark:text-surface-200 truncate">{SERVICE_TYPES[vehicle.lastService.serviceType] || vehicle.lastService.serviceType}</p>
+            <div className="flex gap-2 mt-0.5 flex-wrap">
+              {vehicle.lastService.mileage && <p className="text-xs text-surface-400">{formatNumber(vehicle.lastService.mileage)} ק״מ</p>}
+              <p className="text-xs text-surface-400">{formatDate(vehicle.lastService.date)}</p>
+            </div>
+          </div>
+          {vehicle.lastService.nextServiceMileage ? (
+            <div className={`rounded-xl px-3 py-2 border ${vehicle.currentMileage && vehicle.lastService.nextServiceMileage <= vehicle.currentMileage ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-brand-50 dark:bg-brand-900/20 border-brand-100 dark:border-brand-800'}`}>
+              <p className="text-xs text-brand-400 mb-0.5">טיפול הבא</p>
+              <p className="text-sm font-black text-brand-600 dark:text-brand-400">{formatNumber(vehicle.lastService.nextServiceMileage)} ק״מ</p>
+              {vehicle.currentMileage && vehicle.lastService.nextServiceMileage > vehicle.currentMileage && (
+                <p className="text-xs text-surface-400">נותרו {formatNumber(vehicle.lastService.nextServiceMileage - vehicle.currentMileage)} ק״מ</p>
+              )}
+              {vehicle.currentMileage && vehicle.lastService.nextServiceMileage <= vehicle.currentMileage && (
+                <p className="text-xs text-red-500 font-medium">⚠️ הגיע זמן טיפול!</p>
+              )}
+            </div>
+          ) : (
+            <div className="bg-surface-50 dark:bg-surface-700/40 rounded-xl px-3 py-2">
+              <p className="text-xs text-surface-400 mb-0.5">טיפול הבא</p>
+              <p className="text-xs text-surface-300">לא הוגדר</p>
+            </div>
+          )}
+        </div>
+      )}
     </Link>
   );
 }
