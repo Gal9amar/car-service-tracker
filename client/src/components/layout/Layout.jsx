@@ -1,7 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import {
-} from 'lucide-react';
+import { LayoutDashboard, Car, PlusCircle, Settings, Wrench, LogOut, X, Menu } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
@@ -116,4 +115,3 @@ export default function Layout() {
     </div>
   );
 }
-
