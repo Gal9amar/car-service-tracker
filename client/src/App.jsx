@@ -7,8 +7,6 @@ import DashboardPage from './pages/DashboardPage';
 import VehiclesPage from './pages/VehiclesPage';
 import VehicleDetailPage from './pages/VehicleDetailPage';
 import AddVehiclePage from './pages/AddVehiclePage';
-import GaragesPage from './pages/GaragesPage';
-import GarageDetailPage from './pages/GarageDetailPage';
 import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children }) {
@@ -43,8 +41,6 @@ export default function App() {
         <Route path="vehicles" element={<VehiclesPage />} />
         <Route path="vehicles/new" element={<AddVehiclePage />} />
         <Route path="vehicles/:id" element={<VehicleDetailPage />} />
-        <Route path="garages" element={<GaragesPage />} />
-        <Route path="garages/:id" element={<GarageDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 
@@ -52,3 +48,4 @@ export default function App() {
     </Routes>
   );
 }
+
