@@ -4,6 +4,43 @@ import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesA
 import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
+function VehiclePlate({ number }) {
+  const fmt = (n) => {
+    const d = (n || '').replace(/[^0-9]/g, '');
+    if (d.length === 7) return `${d.slice(0,2)}-${d.slice(2,5)}-${d.slice(5)}`;
+    if (d.length === 8) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
+    return n;
+  };
+  return (
+    <div style={{ display:'inline-flex', alignItems:'stretch', borderRadius:'8px', border:'3px solid #1a1a1a', overflow:'hidden', height:'52px', boxShadow:'0 2px 12px rgba(0,0,0,0.4)', direction:'ltr' }}>
+      <div style={{ background:'#003399', width:'40px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'2px', padding:'4px 2px', flexShrink:0 }}>
+        <span style={{ fontSize:'13px', lineHeight:1 }}>🇮🇱</span>
+        <span style={{ color:'white', fontSize:'8px', fontWeight:800, lineHeight:1 }}>IL</span>
+        <span style={{ color:'white', fontSize:'6px', lineHeight:1 }}>ישראל</span>
+      </div>
+      <div style={{ background:'#F5C400', padding:'0 20px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <span style={{ fontSize:'26px', fontWeight:900, color:'#1a1a1a', letterSpacing:'3px', fontFamily:'monospace', whiteSpace:'nowrap' }}>
+          {fmt(number)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function InfoTile({ label, value, highlight }) {
+  const colors = {
+    red:   'text-red-400',
+    amber: 'text-amber-400',
+    green: 'text-emerald-400',
+  };
+  return (
+    <div className="bg-white/8 rounded-xl px-3 py-2.5">
+      <p className="text-xs text-white/50 mb-0.5">{label}</p>
+      <p className={`text-sm font-bold leading-tight truncate ${highlight ? colors[highlight] : 'text-white'}`}>{value}</p>
+    </div>
+  );
+}
+
 export default function VehicleDetailPage() {
   const { id } = useParams();
   const [vehicle, setVehicle] = useState(null);
@@ -27,33 +64,54 @@ export default function VehicleDetailPage() {
   ];
 
   return (
-    <div className="space-y-6 fade-in">
+    <div className="space-y-5 fade-in" dir="rtl">
       <Link to="/vehicles" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
         <ArrowRight size={16} />חזרה לרכבים
       </Link>
 
-      <div className="card p-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-brand-50 flex items-center justify-center text-4xl flex-shrink-0">
-            {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" /> : '🚗'}
-          </div>
-          <div className="flex-1">
-            <h1 className="font-display text-2xl font-bold">{vehicle.nickname || `${vehicle.manufacturer} ${vehicle.model}`}</h1>
-            <p className="text-surface-500" dir="ltr">{vehicle.licensePlate} • {vehicle.year}</p>
-            <div className="flex flex-wrap gap-3 mt-2 text-sm">
-              {vehicle.currentMileage && <span className="flex items-center gap-1 text-surface-500"><Gauge size={14} />{formatNumber(vehicle.currentMileage)} ק״מ</span>}
-              {vehicle.fuelType && <span className="flex items-center gap-1 text-surface-500"><Fuel size={14} />{vehicle.fuelType}</span>}
-              {vehicle.color && <span className="flex items-center gap-1 text-surface-500"><Palette size={14} />{vehicle.color}</span>}
-              {vehicle.testExpiry && (
-                <span className={`flex items-center gap-1 font-medium ${new Date(vehicle.testExpiry) < new Date() ? 'text-red-500' : 'text-emerald-500'}`}>
-                  <Calendar size={14} />טסט: {formatDate(vehicle.testExpiry)}
-                </span>
-              )}
+      {/* Vehicle header card */}
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-slate-950 rounded-3xl p-5 text-white shadow-xl">
+
+        {/* Top row: emoji + name + PDF button */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">
+              {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" /> : '🚗'}
+            </div>
+            <div>
+              <h1 className="text-xl font-bold leading-tight">
+                {vehicle.manufacturer} {vehicle.model}
+              </h1>
+              {vehicle.nickname && <p className="text-sm text-white/50">{vehicle.nickname}</p>}
             </div>
           </div>
-          <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener" className="btn-secondary flex items-center gap-2 self-start">
-            <FileText size={18} />הורד דוח PDF
+          <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 transition-colors text-white text-xs font-semibold px-3 py-2 rounded-xl">
+            <FileText size={14} />דוח PDF
           </a>
+        </div>
+
+        {/* Israeli plate */}
+        <div className="flex justify-center mb-5">
+          <VehiclePlate number={vehicle.licensePlate} />
+        </div>
+
+        {/* Info grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <InfoTile label="שנת ייצור" value={vehicle.year} />
+          <InfoTile label="קילומטראז׳" value={vehicle.currentMileage ? `${formatNumber(vehicle.currentMileage)} ק״מ` : '—'} />
+          <InfoTile
+            label="טסט"
+            value={vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
+            highlight={vehicle.testExpiry
+              ? new Date(vehicle.testExpiry) < new Date() ? 'red'
+              : new Date(vehicle.testExpiry) < new Date(Date.now() + 60*24*60*60*1000) ? 'amber'
+              : 'green'
+              : null}
+          />
+          {vehicle.fuelType && <InfoTile label="דלק" value={vehicle.fuelType} />}
+          {vehicle.color && <InfoTile label="צבע" value={vehicle.color} />}
+          {vehicle.engineModel && <InfoTile label="מנוע" value={vehicle.engineModel} />}
         </div>
       </div>
 
