@@ -5,6 +5,12 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
 
+// Apply saved theme before render to avoid flash
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  document.documentElement.classList.add('dark');
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
