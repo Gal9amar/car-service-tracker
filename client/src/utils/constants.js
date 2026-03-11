@@ -1,4 +1,5 @@
 export const SERVICE_TYPES = {
+  PERIODIC: 'טיפול תקופתי',
   OIL: 'החלפת שמן',
   BRAKES: 'בלמים',
   TIRES: 'צמיגים',
@@ -37,6 +38,7 @@ export const REMINDER_TYPES = {
 };
 
 export const SERVICE_TYPE_ICONS = {
+  PERIODIC: '🔄',
   OIL: '🛢️',
   BRAKES: '🔴',
   TIRES: '🔧',
