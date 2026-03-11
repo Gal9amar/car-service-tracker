@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { vehicles as vehiclesApi } from '../services/api';
-import { Plus, ChevronLeft } from 'lucide-react';
+import { Plus, ChevronLeft, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
 import { formatDate } from '../utils/constants';
 
 function testStatus(testExpiry) {
@@ -38,13 +38,29 @@ function IsraeliPlate({ number }) {
 export default function VehiclesPage() {
   const [vehicleList, setVehicleList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     vehiclesApi.list()
       .then(res => setVehicleList(res.vehicles))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleDelete = async (id) => {
+    await vehiclesApi.delete(id);
+    setDeleteConfirm(null);
+    load();
+  };
+
+  const handleEdit = async (id, data) => {
+    await vehiclesApi.update(id, data);
+    setEditingVehicle(null);
+    load();
+  };
 
   if (loading) return (
     <div className="flex justify-center py-16">
@@ -72,14 +88,49 @@ export default function VehiclesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {vehicleList.map(v => <VehicleCard key={v.id} vehicle={v} />)}
+          {vehicleList.map(v => (
+            <VehicleCard
+              key={v.id}
+              vehicle={v}
+              onEdit={() => setEditingVehicle(v)}
+              onDelete={() => setDeleteConfirm(v)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingVehicle && (
+        <EditModal
+          vehicle={editingVehicle}
+          onSave={(data) => handleEdit(editingVehicle.id, data)}
+          onClose={() => setEditingVehicle(null)}
+        />
+      )}
+
+      {/* Delete Confirm */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <p className="text-lg font-bold mb-2">מחיקת רכב</p>
+            <p className="text-surface-500 text-sm mb-6">
+              למחוק את <strong>{deleteConfirm.manufacturer} {deleteConfirm.model}</strong>?
+              פעולה זו תמחק את כל הטיפולים וההוצאות של הרכב.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">ביטול</button>
+              <button onClick={() => handleDelete(deleteConfirm.id)} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors">
+                מחק
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function VehicleCard({ vehicle }) {
+function VehicleCard({ vehicle, onEdit, onDelete }) {
   const status = testStatus(vehicle.testExpiry);
   const testBadgeStyle = {
     expired: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
@@ -88,27 +139,35 @@ function VehicleCard({ vehicle }) {
   };
 
   return (
-    <Link to={`/vehicles/${vehicle.id}`}
-      className="block bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-5 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all group">
+    <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-5 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all">
 
-      {/* Top: make/model + arrow */}
+      {/* Top: make/model + action buttons */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">
-            {vehicle.imageUrl
-              ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" />
-              : '🚗'}
-          </div>
-          <div>
-            <p className="font-bold text-surface-900 dark:text-white leading-tight">
+        <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">🚗</div>
+          <div className="min-w-0">
+            <p className="font-bold text-surface-900 dark:text-white leading-tight truncate">
               {vehicle.manufacturer} {vehicle.model}
             </p>
-            {vehicle.nickname && (
-              <p className="text-xs text-surface-400">{vehicle.nickname}</p>
-            )}
+            {vehicle.nickname && <p className="text-xs text-surface-400 truncate">{vehicle.nickname}</p>}
           </div>
+        </Link>
+        <div className="flex items-center gap-1 shrink-0 mr-2">
+          <button
+            onClick={onEdit}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors">
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+            <Trash2 size={16} />
+          </button>
+          <Link to={`/vehicles/${vehicle.id}`}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-brand-500 transition-colors">
+            <ChevronLeft size={18} />
+          </Link>
         </div>
-        <ChevronLeft size={18} className="text-surface-300 group-hover:text-brand-500 transition-colors shrink-0" />
       </div>
 
       {/* Israeli plate */}
@@ -136,11 +195,11 @@ function VehicleCard({ vehicle }) {
         </div>
       </div>
 
-      {/* Optional extra info */}
-      {(vehicle.currentMileage || vehicle.fuelType) && (
-        <div className="flex gap-3 mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
+      {/* Mileage / fuel / color */}
+      {(vehicle.currentMileage || vehicle.fuelType || vehicle.color) && (
+        <div className="flex gap-3 mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 flex-wrap">
           {vehicle.currentMileage && (
-            <span className="text-xs text-surface-400">🛣️ {vehicle.currentMileage.toLocaleString('he-IL')} ק״מ</span>
+            <span className="text-xs text-surface-400">🛣️ {vehicle.currentMileage.toLocaleString('he-IL')}</span>
           )}
           {vehicle.fuelType && (
             <span className="text-xs text-surface-400">⛽ {vehicle.fuelType}</span>
@@ -150,6 +209,81 @@ function VehicleCard({ vehicle }) {
           )}
         </div>
       )}
-    </Link>
+    </div>
+  );
+}
+
+function EditModal({ vehicle, onSave, onClose }) {
+  const [form, setForm] = useState({
+    nickname:       vehicle.nickname || '',
+    currentMileage: vehicle.currentMileage || '',
+    color:          vehicle.color || '',
+    fuelType:       vehicle.fuelType || '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        nickname:       form.nickname || null,
+        currentMileage: form.currentMileage ? Number(form.currentMileage) : null,
+        color:          form.color || null,
+        fuelType:       form.fuelType || null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-white dark:bg-surface-800 rounded-2xl w-full max-w-sm shadow-2xl" dir="rtl">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-100 dark:border-surface-700">
+          <p className="font-bold text-lg">עריכת רכב</p>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="text-xs text-surface-500 mb-1">{vehicle.manufacturer} {vehicle.model} · {vehicle.licensePlate}</p>
+          </div>
+
+          <div>
+            <label className="label">כינוי</label>
+            <input type="text" value={form.nickname} onChange={e => setForm({...form, nickname: e.target.value})}
+              className="input" placeholder='לדוגמה: "הרכב של אבא"' />
+          </div>
+
+          <div>
+            <label className="label">קילומטראז׳</label>
+            <input type="number" value={form.currentMileage} onChange={e => setForm({...form, currentMileage: e.target.value})}
+              className="input" placeholder="120000" dir="ltr" />
+          </div>
+
+          <div>
+            <label className="label">צבע</label>
+            <input type="text" value={form.color} onChange={e => setForm({...form, color: e.target.value})}
+              className="input" placeholder="אפור" />
+          </div>
+
+          <div>
+            <label className="label">סוג דלק</label>
+            <input type="text" value={form.fuelType} onChange={e => setForm({...form, fuelType: e.target.value})}
+              className="input" placeholder="בנזין" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-5 pb-5">
+          <button onClick={onClose} className="btn-secondary flex-1">ביטול</button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+            שמור
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
