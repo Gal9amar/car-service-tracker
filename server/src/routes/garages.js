@@ -10,24 +10,22 @@ router.use(authenticate);
 // Overpass API — חיפוש מוסכים מ-OpenStreetMap
 // ============================================
 async function searchGaragesFromOSM(city, search) {
-  // בניית שאילתת Overpass QL
-  const areaQuery = city
-    ? `area[name="${city}"][admin_level~"^[4-8]$"]->.searchArea;`
-    : '';
-
+  // bbox ישראל: (south, west, north, east)
+  const ISRAEL_BBOX = '29.5,34.2,33.3,35.9';
   const nameFilter = search ? `["name"~"${search}",i]` : '';
+  const cityFilter = city ? `["addr:city"~"${city}",i]` : '';
+  const bbox = `(${ISRAEL_BBOX})`;
 
   const query = `
-    [out:json][timeout:15];
-    ${areaQuery}
+    [out:json][timeout:20];
     (
-      node["shop"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
-      way["shop"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
-      node["amenity"="car_repair"]${nameFilter}${city ? '(area.searchArea)' : '[bbox:29.5,34.2,33.3,35.9]'};
+      node["shop"="car_repair"]${nameFilter}${cityFilter}${bbox};
+      way["shop"="car_repair"]${nameFilter}${cityFilter}${bbox};
+      node["amenity"="car_repair"]${nameFilter}${cityFilter}${bbox};
+      way["amenity"="car_repair"]${nameFilter}${cityFilter}${bbox};
     );
     out center 50;
   `;
-
   const response = await fetch('https://overpass-api.de/api/interpreter', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -220,3 +218,4 @@ router.delete('/:garageId/reviews', async (req, res, next) => {
 });
 
 export default router;
+
