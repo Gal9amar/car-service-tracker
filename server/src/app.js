@@ -17,6 +17,7 @@ import reminderRoutes from './routes/reminders.js';
 import garageRoutes from './routes/garages.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
+import { startReminderCron } from './services/reminderCron.js';
 
 dotenv.config();
 
@@ -85,6 +86,7 @@ app.use(errorHandler);
 // ============================================
 app.listen(PORT, () => {
   console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
+  startReminderCron();
 });
 
 export default app;
