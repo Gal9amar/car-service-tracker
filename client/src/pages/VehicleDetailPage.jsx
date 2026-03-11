@@ -142,7 +142,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const emptyForm = { serviceType: 'OIL', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', nextServiceMileage: '', description: '' };
+  const emptyForm = { serviceType: 'PERIODIC', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', nextServiceMileage: '', description: '' };
   const [form, setForm] = useState(emptyForm);
 
   const openAdd = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); };
