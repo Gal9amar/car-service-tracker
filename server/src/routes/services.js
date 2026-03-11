@@ -6,7 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 const router = Router();
 router.use(authenticate);
 
-const serviceTypes = ['OIL', 'BRAKES', 'TIRES', 'BATTERY', 'TEST', 'AC',
+const serviceTypes = ['PERIODIC', 'OIL', 'BRAKES', 'TIRES', 'BATTERY', 'TEST', 'AC',
   'TIMING_BELT', 'FILTERS', 'SUSPENSION', 'ELECTRICAL', 'BODY_WORK', 'GENERAL', 'OTHER'];
 
 const createServiceSchema = z.object({
