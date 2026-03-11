@@ -18,6 +18,7 @@ const createServiceSchema = z.object({
   cost: z.number().min(0),
   garageId: z.string().uuid().optional(),
   warrantyUntil: z.string().optional(),
+  nextServiceMileage: z.number().int().optional(),
 });
 
 // ============================================
@@ -69,6 +70,7 @@ router.post('/', async (req, res, next) => {
         ...data,
         date: new Date(data.date),
         warrantyUntil: data.warrantyUntil ? new Date(data.warrantyUntil) : null,
+        nextServiceMileage: data.nextServiceMileage || null,
       },
       include: { garage: { select: { id: true, name: true } } },
     });
@@ -105,6 +107,7 @@ router.put('/:id', async (req, res, next) => {
       cost: z.number().min(0).optional(),
       garageId: z.string().uuid().optional().nullable(),
       warrantyUntil: z.string().optional().nullable(),
+      nextServiceMileage: z.number().int().optional().nullable(),
     });
 
     const data = updateSchema.parse(req.body);
@@ -114,6 +117,7 @@ router.put('/:id', async (req, res, next) => {
         ...data,
         date: data.date ? new Date(data.date) : undefined,
         warrantyUntil: data.warrantyUntil ? new Date(data.warrantyUntil) : data.warrantyUntil === null ? null : undefined,
+        nextServiceMileage: data.nextServiceMileage !== undefined ? data.nextServiceMileage : undefined,
       },
     });
 
