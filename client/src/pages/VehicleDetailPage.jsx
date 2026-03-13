@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 function VehiclePlate({ number }) {
@@ -132,7 +132,7 @@ export default function VehicleDetailPage() {
       {tab === 'services' && <ServicesTab vehicleId={vehicle.id} services={vehicle.services} onRefresh={fetchVehicle} />}
       {tab === 'expenses' && <ExpensesTab vehicleId={vehicle.id} expenses={vehicle.expenses} onRefresh={fetchVehicle} />}
       {tab === 'reminders' && <RemindersTab vehicleId={vehicle.id} reminders={vehicle.reminders} onRefresh={fetchVehicle} />}
-      {tab === 'details' && <DetailsTab vehicle={vehicle} />}
+      {tab === 'details' && <DetailsTab vehicle={vehicle} setVehicle={setVehicle} />}
     </div>
   );
 }
@@ -515,7 +515,27 @@ function DSection({ title, children }) {
   );
 }
 
-function DetailsTab({ vehicle }) {
+function DetailsTab({ vehicle, setVehicle }) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setRefreshError('');
+    try {
+      const res = await vehiclesApi.refresh(vehicle.id);
+      setVehicle(prev => ({ ...prev, ...res.vehicle }));
+    } catch {
+      setRefreshError('שגיאה בעדכון הנתונים, נסה שוב');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const fmtUpdated = (dt) => {
+    if (!dt) return null;
+    return new Date(dt).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
   const fmtDate = (yyyymm) => {
     if (!yyyymm) return '';
     const s = String(yyyymm);
@@ -554,7 +574,20 @@ function DetailsTab({ vehicle }) {
   return (
     <div className="space-y-4">
 
-      {/* ── Recalls ─────────────────────────────── */}
+      {/* ── Refresh bar ──────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-surface-400">
+          {vehicle.govDataUpdatedAt
+            ? `עודכן לאחרונה: ${fmtUpdated(vehicle.govDataUpdatedAt)}`
+            : 'נתוני ממשלה לא עודכנו עדיין'}
+        </p>
+        <button onClick={handleRefresh} disabled={refreshing}
+          className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 disabled:opacity-50 transition-colors">
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? 'מעדכן...' : 'רענן נתונים'}
+        </button>
+      </div>
+      {refreshError && <p className="text-xs text-red-500">{refreshError}</p>}
       {recalls.length > 0 && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
           <p className="font-bold text-red-600 dark:text-red-400 mb-3">⚠️ קריאות שירות פתוחות ({recalls.length})</p>
