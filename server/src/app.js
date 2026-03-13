@@ -15,6 +15,7 @@ import expenseRoutes from './routes/expenses.js';
 import reminderRoutes from './routes/reminders.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
+import insuranceRoutes from './routes/insurances.js';
 import { startReminderCron } from './services/reminderCron.js';
 
 dotenv.config();
@@ -54,6 +55,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/insurances', insuranceRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
