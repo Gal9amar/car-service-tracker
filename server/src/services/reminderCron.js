@@ -82,12 +82,23 @@ async function refreshAllVehicleGovData() {
 async function checkAndSendReminders() {
   console.log('📅 Running reminder check...', new Date().toISOString());
 
-  const soon = new Date();
+  const now   = new Date();
+  const soon  = new Date();
   soon.setDate(soon.getDate() + DAYS_BEFORE);
+
+  // 24h ago — למנוע שליחה כפולה באותו יום
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   try {
     const reminders = await prisma.reminder.findMany({
-      where: { isActive: true, dueDate: { lte: soon } },
+      where: {
+        isActive: true,
+        dueDate: { gte: now, lte: soon },          // רק עתידיות בטווח 7 ימים
+        OR: [
+          { lastNotified: null },
+          { lastNotified: { lt: oneDayAgo } },     // לא נשלח ב-24 שעות האחרונות
+        ],
+      },
       include: {
         vehicle: {
           select: {
@@ -122,6 +133,13 @@ async function checkAndSendReminders() {
           html,
         });
         console.log(`📧 Sent reminder email to ${user.email} (${userReminders.length} reminders)`);
+
+        // עדכן lastNotified לכל תזכורת שנשלחה
+        await prisma.reminder.updateMany({
+          where: { id: { in: userReminders.map(r => r.id) } },
+          data: { lastNotified: new Date() },
+        });
+
         sent++;
       } catch (err) {
         console.error(`❌ Failed to send to ${user.email}:`, err.message);
