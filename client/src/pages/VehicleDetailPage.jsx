@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports, insurances as insurancesApi } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield } from 'lucide-react';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield, ClipboardCheck } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 function VehiclePlate({ number }) {
@@ -57,10 +57,11 @@ export default function VehicleDetailPage() {
   if (!vehicle) return <p className="text-center text-surface-500">רכב לא נמצא</p>;
 
   const tabs = [
-    { id: 'services',   label: 'טיפולים',  icon: Wrench,  count: vehicle.services.length },
-    { id: 'expenses',   label: 'הוצאות',   icon: Receipt, count: vehicle.expenses.length },
-    { id: 'reminders',  label: 'תזכורות',  icon: Bell,    count: vehicle.reminders.length },
+    { id: 'services',   label: 'טיפולים',  icon: Wrench,         count: vehicle.services.length },
+    { id: 'expenses',   label: 'הוצאות',   icon: Receipt,        count: vehicle.expenses.length },
+    { id: 'reminders',  label: 'תזכורות',  icon: Bell,           count: vehicle.reminders.length },
     { id: 'insurances', label: 'ביטוחים',  icon: Shield },
+    { id: 'mot',        label: 'טסט',      icon: ClipboardCheck },
     { id: 'details',    label: 'פרטים',    icon: FileText },
   ];
 
@@ -134,6 +135,7 @@ export default function VehicleDetailPage() {
       {tab === 'expenses'   && <ExpensesTab vehicleId={vehicle.id} expenses={vehicle.expenses} onRefresh={fetchVehicle} />}
       {tab === 'reminders'  && <RemindersTab vehicleId={vehicle.id} reminders={vehicle.reminders} onRefresh={fetchVehicle} />}
       {tab === 'insurances' && <InsurancesTab vehicleId={vehicle.id} />}
+      {tab === 'mot'        && <MotTab vehicle={vehicle} onRefresh={fetchVehicle} />}
       {tab === 'details'    && <DetailsTab vehicle={vehicle} setVehicle={setVehicle} />}
     </div>
   );
@@ -728,6 +730,133 @@ function DetailsTab({ vehicle, setVehicle }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── MOT (Test) Tab ──────────────────────────────────────────────────────────
+function MotTab({ vehicle, onRefresh }) {
+  const [saving, setSaving] = useState(false);
+  const [done, setDone]     = useState(false);
+
+  const now        = new Date();
+  const expiry     = vehicle.testExpiry ? new Date(vehicle.testExpiry) : null;
+  const lastTest   = vehicle.lastTest   ? new Date(vehicle.lastTest)   : null;
+  const daysLeft   = expiry ? Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)) : null;
+  const isExpired  = daysLeft !== null && daysLeft < 0;
+  const isUrgent   = daysLeft !== null && daysLeft <= 7  && !isExpired;
+  const isWarning  = daysLeft !== null && daysLeft <= 30 && !isUrgent && !isExpired;
+
+  const fmt = d => d ? new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+
+  const hasReminder = vehicle.reminders?.some(r => r.reminderType === 'TEST' && r.isActive);
+
+  const handleSetReminder = async () => {
+    if (!expiry || hasReminder) return;
+    setSaving(true);
+    try {
+      await remindersApi.create({
+        vehicleId:     vehicle.id,
+        reminderType:  'TEST',
+        title:         'טסט שנתי',
+        dueDate:       expiry.toISOString().split('T')[0],
+        intervalMonths: 12,
+      });
+      setDone(true);
+      onRefresh();
+    } catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  };
+
+  const statusColor = isExpired ? 'red' : isUrgent ? 'red' : isWarning ? 'amber' : 'emerald';
+  const statusBg    = { red: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800', amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800', emerald: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' }[statusColor];
+  const statusText  = { red: 'text-red-700 dark:text-red-400', amber: 'text-amber-700 dark:text-amber-400', emerald: 'text-emerald-700 dark:text-emerald-400' }[statusColor];
+
+  return (
+    <div className="space-y-4">
+
+      {/* Status banner */}
+      {expiry && (
+        <div className={`rounded-2xl border p-5 ${statusBg}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">
+              {isExpired ? '🚨' : isUrgent ? '⚠️' : isWarning ? '📅' : '✅'}
+            </span>
+            <div>
+              <p className={`font-bold text-lg ${statusText}`}>
+                {isExpired
+                  ? `פג תוקף לפני ${Math.abs(daysLeft)} ימים`
+                  : `${daysLeft} ימים עד לפקיעה`}
+              </p>
+              <p className={`text-sm ${statusText} opacity-80`}>
+                תוקף עד: {fmt(expiry)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!expiry && (
+        <div className="card p-5 text-center text-surface-400">
+          <ClipboardCheck size={36} className="mx-auto mb-2 opacity-40" />
+          <p>אין מידע על טסט — יתעדכן בריענון נתוני הרכב</p>
+        </div>
+      )}
+
+      {/* Details */}
+      <div className="card p-5">
+        <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-4">פרטי טסט</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-surface-400 mb-0.5">טסט אחרון</p>
+            <p className="font-medium">{fmt(lastTest)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-surface-400 mb-0.5">תוקף רישוי</p>
+            <p className="font-medium">{fmt(expiry)}</p>
+          </div>
+          {vehicle.testKm > 0 && (
+            <div>
+              <p className="text-xs text-surface-400 mb-0.5">ק"מ בטסט האחרון</p>
+              <p className="font-medium">{vehicle.testKm?.toLocaleString('he-IL')} ק"מ</p>
+            </div>
+          )}
+          {daysLeft !== null && !isExpired && (
+            <div>
+              <p className="text-xs text-surface-400 mb-0.5">ימים שנותרו</p>
+              <p className={`font-bold ${statusText}`}>{daysLeft} ימים</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reminder */}
+      <div className="card p-5">
+        <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">תזכורת לטסט</p>
+        {hasReminder ? (
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+            <span>✓</span>
+            <p className="text-sm font-medium">תזכורת פעילה — תישלח מייל 30 ו-7 ימים לפני הפקיעה</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-surface-500">אין תזכורת פעילה לטסט</p>
+            <button
+              onClick={handleSetReminder}
+              disabled={saving || !expiry || done}
+              className="btn-primary flex items-center gap-2"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Bell size={16} />}
+              {done ? 'נוצרה בהצלחה ✓' : 'קבע תזכורת לטסט'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Refresh note */}
+      <p className="text-xs text-surface-400 text-center">
+        הנתונים מתעדכנים אוטומטית מרשות הרישוי בכל פעם שמרעננים את פרטי הרכב
+      </p>
     </div>
   );
 }
