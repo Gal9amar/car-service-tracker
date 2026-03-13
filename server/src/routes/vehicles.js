@@ -260,6 +260,114 @@ router.put('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/vehicles/:id/refresh  — re-fetch all gov data and update DB
+router.post('/:id/refresh', async (req, res, next) => {
+  try {
+    const existing = await prisma.vehicle.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!existing) return res.status(404).json({ error: 'Vehicle not found.' });
+
+    const fresh = await lookupVehicle(existing.licensePlate);
+    if (!fresh) return res.status(502).json({ error: 'Could not fetch data from government database.' });
+
+    const updated = await prisma.vehicle.update({
+      where: { id: req.params.id },
+      data: {
+        manufacturer:     fresh.manufacturer,
+        manufacturerCode: fresh.manufacturerCode,
+        model:            fresh.model,
+        modelCode:        fresh.modelCode,
+        modelId:          fresh.modelId,
+        vehicleType:      fresh.vehicleType,
+        color:            fresh.color,
+        colorCode:        fresh.colorCode,
+        fuelType:         fresh.fuelType,
+        engineModel:      fresh.engineModel,
+        trim:             fresh.trim,
+        safetyRating:     fresh.safetyRating,
+        pollutionLevel:   fresh.pollutionLevel,
+        vin:              fresh.vin,
+        frontTire:        fresh.frontTire,
+        rearTire:         fresh.rearTire,
+        lastTest:         fresh.lastTest   ? new Date(fresh.lastTest)   : null,
+        testExpiry:       fresh.testExpiry ? new Date(fresh.testExpiry) : null,
+        ownership:        fresh.ownership,
+        registrationNote: fresh.registrationNote,
+        firstRegistered:  fresh.firstRegistered,
+        engineNumber:       fresh.engineNumber,
+        testKm:             fresh.testKm,
+        structureChange:    fresh.structureChange   ?? false,
+        hasGrapam:          fresh.hasGrapam         ?? false,
+        colorChange:        fresh.colorChange       ?? false,
+        tireChange:         fresh.tireChange        ?? false,
+        firstRegisteredDate: fresh.firstRegisteredDate,
+        origin:             fresh.origin,
+        horsePower:           fresh.horsePower,
+        engineCC:             fresh.engineCC,
+        weight:               fresh.weight,
+        doors:                fresh.doors,
+        seats:                fresh.seats,
+        bodyType:             fresh.bodyType,
+        driveType:            fresh.driveType,
+        transmission:         fresh.transmission,
+        standardType:         fresh.standardType,
+        towingWithBrakes:     fresh.towingWithBrakes,
+        towingWithoutBrakes:  fresh.towingWithoutBrakes,
+        airbags:              fresh.airbags,
+        electricWindows:      fresh.electricWindows,
+        hasAC:                fresh.hasAC             ?? false,
+        hasABS:               fresh.hasABS            ?? false,
+        hasPowerSteering:     fresh.hasPowerSteering  ?? false,
+        hasStabControl:       fresh.hasStabControl    ?? false,
+        hasSunroof:           fresh.hasSunroof        ?? false,
+        hasAlloyWheels:       fresh.hasAlloyWheels    ?? false,
+        hasTrunkRack:         fresh.hasTrunkRack      ?? false,
+        co2:                  fresh.co2,
+        co2City:              fresh.co2City,
+        co2Highway:           fresh.co2Highway,
+        nox:                  fresh.nox,
+        co:                   fresh.co,
+        greenScore:           fresh.greenScore,
+        hasLaneDeparture:     fresh.hasLaneDeparture     ?? false,
+        hasForwardWarning:    fresh.hasForwardWarning    ?? false,
+        hasBlindSpot:         fresh.hasBlindSpot         ?? false,
+        hasAdaptiveCruise:    fresh.hasAdaptiveCruise    ?? false,
+        hasPedestrianDetect:  fresh.hasPedestrianDetect  ?? false,
+        hasAutoEmergencyBrake: fresh.hasAutoEmergencyBrake ?? false,
+        hasRearCamera:        fresh.hasRearCamera        ?? false,
+        hasTirePressure:      fresh.hasTirePressure      ?? false,
+        hasFatigueAlert:      fresh.hasFatigueAlert      ?? false,
+        safetyScore:          fresh.safetyScore,
+        hasAutoHighBeam:      fresh.hasAutoHighBeam      ?? false,
+        hasSpeedLimiter:      fresh.hasSpeedLimiter      ?? false,
+        hasAlcoLock:          fresh.hasAlcoLock          ?? false,
+        ownershipHistory: fresh.ownershipHistory ? JSON.stringify(fresh.ownershipHistory) : null,
+        recalls:          fresh.recalls          ? JSON.stringify(fresh.recalls)          : null,
+        govDataUpdatedAt: new Date(),
+      },
+      include: {
+        services:  { include: { garage: { select: { id: true, name: true } }, attachments: true }, orderBy: { date: 'desc' }, take: 20 },
+        expenses:  { orderBy: { date: 'desc' }, take: 20 },
+        reminders: { orderBy: { dueDate: 'asc' } },
+      },
+    });
+
+    // Update test reminder if testExpiry changed
+    if (updated.testExpiry) {
+      const existingReminder = await prisma.reminder.findFirst({
+        where: { vehicleId: updated.id, reminderType: 'TEST' },
+      });
+      if (existingReminder) {
+        await prisma.reminder.update({
+          where: { id: existingReminder.id },
+          data: { dueDate: updated.testExpiry },
+        });
+      }
+    }
+
+    res.json({ vehicle: parseVehicle(updated), refreshed: true });
+  } catch (err) { next(err); }
+});
+
 // DELETE /api/vehicles/:id
 router.delete('/:id', async (req, res, next) => {
   try {
