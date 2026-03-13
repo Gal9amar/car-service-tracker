@@ -7,21 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// USERS
-// ============================================
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String?  @map("password_hash")
-  name         String
-  googleId     String?  @unique @map("google_id")
-  avatarUrl      String?  @map("avatar_url")
-  isVerified     Boolean  @default(false) @map("is_verified")
-  verifyCode     String?  @map("verify_code")
-  verifyExpires  DateTime? @map("verify_expires")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String?   @map("password_hash")
+  name          String
+  googleId      String?   @unique @map("google_id")
+  avatarUrl     String?   @map("avatar_url")
+  isVerified    Boolean   @default(false) @map("is_verified")
+  verifyCode    String?   @map("verify_code")
+  verifyExpires DateTime? @map("verify_expires")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   vehicles      Vehicle[]
   garageReviews GarageReview[]
@@ -30,30 +27,51 @@ model User {
   @@map("users")
 }
 
-// ============================================
-// VEHICLES
-// ============================================
 model Vehicle {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
-  licensePlate    String   @map("license_plate")
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  licensePlate    String    @map("license_plate")
   manufacturer    String
   model           String
   year            Int
   color           String?
-  fuelType        String?  @map("fuel_type")
-  engineModel     String?  @map("engine_model")
+  fuelType        String?   @map("fuel_type")
+  engineModel     String?   @map("engine_model")
   trim            String?
   vin             String?
-  frontTire       String?  @map("front_tire")
-  rearTire        String?  @map("rear_tire")
+  frontTire       String?   @map("front_tire")
+  rearTire        String?   @map("rear_tire")
   testExpiry      DateTime? @map("test_expiry") @db.Date
   lastTest        DateTime? @map("last_test") @db.Date
-  firstRegistered String?  @map("first_registered")
-  currentMileage  Int?     @map("current_mileage")
-  imageUrl        String?  @map("image_url")
+  firstRegistered String?   @map("first_registered")
+  currentMileage  Int?      @map("current_mileage")
+  imageUrl        String?   @map("image_url")
   nickname        String?
-  createdAt       DateTime @default(now()) @map("created_at")
+  ownership       String?
+
+  // Technical from 56063a99
+  engineNumber    String?   @map("engine_number")
+  testKm          Int?      @map("test_km")
+  structureChange Boolean   @default(false) @map("structure_change")
+  colorChange     Boolean   @default(false) @map("color_change")
+  tireChange      Boolean   @default(false) @map("tire_change")
+  hasGrapam       Boolean   @default(false) @map("has_grapam")
+  origin          String?
+
+  // Pollution
+  pollutionLevel  Int?      @map("pollution_level")
+
+  // WLTP
+  horsePower      Int?      @map("horse_power")
+  engineCC        Int?      @map("engine_cc")
+  co2             Float?
+  fuelConsumption Float?    @map("fuel_consumption")
+
+  // JSON arrays stored as text
+  ownershipHistory String?  @map("ownership_history") // JSON array
+  recalls          String?  // JSON array
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   services  Service[]
@@ -64,9 +82,6 @@ model Vehicle {
   @@map("vehicles")
 }
 
-// ============================================
-// SERVICE TYPES
-// ============================================
 enum ServiceType {
   PERIODIC
   OIL
@@ -84,18 +99,15 @@ enum ServiceType {
   OTHER
 }
 
-// ============================================
-// SERVICES (maintenance records)
-// ============================================
 model Service {
-  id            String      @id @default(uuid())
-  vehicleId     String      @map("vehicle_id")
-  serviceType   ServiceType @map("service_type")
-  description   String?
-  date          DateTime    @db.Date
-  mileage       Int?
-  cost          Decimal     @db.Decimal(10, 2)
-  garageId      String?     @map("garage_id")
+  id                 String      @id @default(uuid())
+  vehicleId          String      @map("vehicle_id")
+  serviceType        ServiceType @map("service_type")
+  description        String?
+  date               DateTime    @db.Date
+  mileage            Int?
+  cost               Decimal     @db.Decimal(10, 2)
+  garageId           String?     @map("garage_id")
   warrantyUntil      DateTime?   @map("warranty_until") @db.Date
   nextServiceMileage Int?        @map("next_service_mileage")
   createdAt          DateTime    @default(now()) @map("created_at")
@@ -107,9 +119,6 @@ model Service {
   @@map("services")
 }
 
-// ============================================
-// SERVICE ATTACHMENTS
-// ============================================
 model ServiceAttachment {
   id        String   @id @default(uuid())
   serviceId String   @map("service_id")
@@ -123,9 +132,6 @@ model ServiceAttachment {
   @@map("service_attachments")
 }
 
-// ============================================
-// EXPENSE CATEGORIES
-// ============================================
 enum ExpenseCategory {
   FUEL
   PARKING
@@ -138,9 +144,6 @@ enum ExpenseCategory {
   OTHER
 }
 
-// ============================================
-// EXPENSES
-// ============================================
 model Expense {
   id          String          @id @default(uuid())
   vehicleId   String          @map("vehicle_id")
@@ -155,9 +158,6 @@ model Expense {
   @@map("expenses")
 }
 
-// ============================================
-// REMINDER TYPES
-// ============================================
 enum ReminderType {
   TEST
   OIL
@@ -168,9 +168,6 @@ enum ReminderType {
   CUSTOM
 }
 
-// ============================================
-// REMINDERS
-// ============================================
 model Reminder {
   id             String       @id @default(uuid())
   vehicleId      String       @map("vehicle_id")
@@ -189,9 +186,6 @@ model Reminder {
   @@map("reminders")
 }
 
-// ============================================
-// GARAGES
-// ============================================
 model Garage {
   id          String   @id @default(uuid())
   name        String
@@ -211,14 +205,11 @@ model Garage {
   @@map("garages")
 }
 
-// ============================================
-// GARAGE REVIEWS
-// ============================================
 model GarageReview {
   id        String   @id @default(uuid())
   garageId  String   @map("garage_id")
   userId    String   @map("user_id")
-  rating    Int      // 1-5
+  rating    Int
   comment   String?
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -228,4 +219,3 @@ model GarageReview {
   @@unique([garageId, userId])
   @@map("garage_reviews")
 }
-
