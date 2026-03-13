@@ -73,7 +73,7 @@ export async function lookupVehicle(licensePlate) {
     lastTest:           m.mivchan_acharon_dt || null,
     testExpiry:         m.tokef_dt          || null,
     ownership:          m.baalut            || null,
-    registrationNote:   m.horaat_rishum     || null,
+    registrationNote:   m.horaat_rishum != null ? String(m.horaat_rishum) : null,
     firstRegistered:    m.moed_aliya_lakvish || null,
 
     // ── Technical (56063a99) ─────────────────────────────────
