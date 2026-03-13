@@ -875,8 +875,20 @@ function InsurancesTab({ vehicleId }) {
   const [saving, setSaving]       = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const empty = { insuranceType: 'MANDATORY', company: '', policyNumber: '', startDate: '', endDate: '', cost: '', notes: '' };
+  const empty = { insuranceType: 'MANDATORY', company: '', startDate: '', endDate: '', cost: '', notes: '' };
   const [form, setForm]           = useState(empty);
+
+  const calcEndDate = (start) => {
+    if (!start) return '';
+    const d = new Date(start);
+    d.setFullYear(d.getFullYear() + 1);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const handleStartDateChange = (val) => {
+    setForm(f => ({ ...f, startDate: val, endDate: calcEndDate(val) }));
+  };
 
   const load = () => {
     setLoading(true);
@@ -895,7 +907,6 @@ function InsurancesTab({ vehicleId }) {
     setForm({
       insuranceType: ins.insuranceType,
       company:       ins.company,
-      policyNumber:  ins.policyNumber || '',
       startDate:     ins.startDate?.toString().split('T')[0] || '',
       endDate:       ins.endDate?.toString().split('T')[0]   || '',
       cost:          ins.cost ? String(ins.cost) : '',
@@ -935,7 +946,7 @@ function InsurancesTab({ vehicleId }) {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-brand-500" size={28} /></div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       <div className="flex justify-end">
         <button onClick={openAdd} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> הוסף ביטוח
@@ -944,38 +955,35 @@ function InsurancesTab({ vehicleId }) {
 
       {/* Form */}
       {showForm && (
-        <div className="card p-5 space-y-4">
-          <h3 className="font-bold">{editingId ? 'עריכת ביטוח' : 'ביטוח חדש'}</h3>
+        <div className="card p-5 space-y-4" dir="rtl">
+          <h3 className="font-bold text-right">{editingId ? 'עריכת ביטוח' : 'ביטוח חדש'}</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 sm:col-span-1">
-              <label className="label">סוג ביטוח</label>
-              <select className="input" value={form.insuranceType} onChange={e => setForm(f => ({...f, insuranceType: e.target.value}))}>
+            <div>
+              <label className="label text-right block">סוג ביטוח</label>
+              <select className="input text-right" value={form.insuranceType} onChange={e => setForm(f => ({...f, insuranceType: e.target.value}))}>
                 {INSURANCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">חברת ביטוח *</label>
-              <input className="input" value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))} placeholder="מנורה, הפניקס..." />
+              <label className="label text-right block">חברת ביטוח *</label>
+              <input className="input text-right" value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))} placeholder="מנורה, הפניקס..." />
             </div>
             <div>
-              <label className="label">מספר פוליסה</label>
-              <input className="input" value={form.policyNumber} onChange={e => setForm(f => ({...f, policyNumber: e.target.value}))} dir="ltr" />
+              <label className="label text-right block">תאריך תחילה *</label>
+              <input type="date" className="input" value={form.startDate} onChange={e => handleStartDateChange(e.target.value)} />
             </div>
             <div>
-              <label className="label">תאריך תחילה *</label>
-              <input type="date" className="input" value={form.startDate} onChange={e => setForm(f => ({...f, startDate: e.target.value}))} />
-            </div>
-            <div>
-              <label className="label">תאריך סיום *</label>
+              <label className="label text-right block">תאריך סיום</label>
               <input type="date" className="input" value={form.endDate} onChange={e => setForm(f => ({...f, endDate: e.target.value}))} />
+              {form.startDate && <p className="text-xs text-surface-400 mt-1 text-right">מחושב אוטומטית — ניתן לשנות</p>}
             </div>
             <div>
-              <label className="label">פרמיה שנתית (₪)</label>
-              <input type="number" className="input" value={form.cost} onChange={e => setForm(f => ({...f, cost: e.target.value}))} dir="ltr" />
+              <label className="label text-right block">פרמיה שנתית (₪)</label>
+              <input type="number" className="input text-right" value={form.cost} onChange={e => setForm(f => ({...f, cost: e.target.value}))} />
             </div>
-            <div className="col-span-2">
-              <label className="label">הערות</label>
-              <input className="input" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} />
+            <div>
+              <label className="label text-right block">הערות</label>
+              <input className="input text-right" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} />
             </div>
           </div>
           <div className="flex gap-3 justify-end pt-2">
@@ -1020,7 +1028,6 @@ function InsurancesTab({ vehicleId }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {ins.policyNumber && <div><p className="text-xs text-surface-400">פוליסה</p><p className="font-medium" dir="ltr">{ins.policyNumber}</p></div>}
               <div><p className="text-xs text-surface-400">תחילה</p><p className="font-medium">{fmt(ins.startDate)}</p></div>
               <div><p className="text-xs text-surface-400">סיום</p><p className="font-medium">{fmt(ins.endDate)}</p></div>
               {ins.cost && <div><p className="text-xs text-surface-400">פרמיה</p><p className="font-medium">₪{Number(ins.cost).toLocaleString('he-IL')}</p></div>}
