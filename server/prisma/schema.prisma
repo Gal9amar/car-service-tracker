@@ -28,48 +28,95 @@ model User {
 }
 
 model Vehicle {
-  id              String    @id @default(uuid())
-  userId          String    @map("user_id")
-  licensePlate    String    @map("license_plate")
-  manufacturer    String
-  model           String
-  year            Int
-  color           String?
-  fuelType        String?   @map("fuel_type")
-  engineModel     String?   @map("engine_model")
-  trim            String?
-  vin             String?
-  frontTire       String?   @map("front_tire")
-  rearTire        String?   @map("rear_tire")
-  testExpiry      DateTime? @map("test_expiry") @db.Date
-  lastTest        DateTime? @map("last_test") @db.Date
-  firstRegistered String?   @map("first_registered")
-  currentMileage  Int?      @map("current_mileage")
-  imageUrl        String?   @map("image_url")
-  nickname        String?
-  ownership       String?
+  id           String @id @default(uuid())
+  userId       String @map("user_id")
 
-  // Technical from 56063a99
-  engineNumber    String?   @map("engine_number")
-  testKm          Int?      @map("test_km")
-  structureChange Boolean   @default(false) @map("structure_change")
-  colorChange     Boolean   @default(false) @map("color_change")
-  tireChange      Boolean   @default(false) @map("tire_change")
-  hasGrapam       Boolean   @default(false) @map("has_grapam")
-  origin          String?
+  // ── User input ────────────────────────────────────────────
+  nickname       String?
+  currentMileage Int?     @map("current_mileage")
+  imageUrl       String?  @map("image_url")
 
-  // Pollution
-  pollutionLevel  Int?      @map("pollution_level")
+  // ── Main (053cea08) ───────────────────────────────────────
+  licensePlate     String   @map("license_plate")
+  manufacturer     String
+  manufacturerCode Int?     @map("manufacturer_code")
+  model            String
+  modelCode        String?  @map("model_code")
+  modelId          Int?     @map("model_id")
+  vehicleType      String?  @map("vehicle_type")
+  year             Int
+  color            String?
+  colorCode        Int?     @map("color_code")
+  fuelType         String?  @map("fuel_type")
+  engineModel      String?  @map("engine_model")
+  trim             String?
+  safetyRating     String?  @map("safety_rating")
+  pollutionLevel   Int?     @map("pollution_level")
+  vin              String?
+  frontTire        String?  @map("front_tire")
+  rearTire         String?  @map("rear_tire")
+  lastTest         DateTime? @map("last_test") @db.Date
+  testExpiry       DateTime? @map("test_expiry") @db.Date
+  ownership        String?
+  registrationNote String?  @map("registration_note")
+  firstRegistered  String?  @map("first_registered")
 
-  // WLTP
-  horsePower      Int?      @map("horse_power")
-  engineCC        Int?      @map("engine_cc")
-  co2             Float?
-  fuelConsumption Float?    @map("fuel_consumption")
+  // ── Technical (56063a99) ──────────────────────────────────
+  engineNumber      String?  @map("engine_number")
+  testKm            Int?     @map("test_km")
+  structureChange   Boolean  @default(false) @map("structure_change")
+  hasGrapam         Boolean  @default(false) @map("has_grapam")
+  colorChange       Boolean  @default(false) @map("color_change")
+  tireChange        Boolean  @default(false) @map("tire_change")
+  firstRegisteredDate String? @map("first_registered_date")
+  origin            String?
 
-  // JSON arrays stored as text
-  ownershipHistory String?  @map("ownership_history") // JSON array
-  recalls          String?  // JSON array
+  // ── WLTP (142afde2) ───────────────────────────────────────
+  horsePower           Int?     @map("horse_power")
+  engineCC             Int?     @map("engine_cc")
+  weight               Int?
+  doors                Int?
+  seats                Int?
+  bodyType             String?  @map("body_type")
+  driveType            String?  @map("drive_type")
+  transmission         String?
+  standardType         String?  @map("standard_type")
+  towingWithBrakes     Int?     @map("towing_with_brakes")
+  towingWithoutBrakes  Int?     @map("towing_without_brakes")
+  airbags              Int?
+  electricWindows      Int?     @map("electric_windows")
+  hasAC                Boolean  @default(false) @map("has_ac")
+  hasABS               Boolean  @default(false) @map("has_abs")
+  hasPowerSteering     Boolean  @default(false) @map("has_power_steering")
+  hasStabControl       Boolean  @default(false) @map("has_stab_control")
+  hasSunroof           Boolean  @default(false) @map("has_sunroof")
+  hasAlloyWheels       Boolean  @default(false) @map("has_alloy_wheels")
+  hasTrunkRack         Boolean  @default(false) @map("has_trunk_rack")
+  // Emissions
+  co2                  Float?
+  co2City              Float?   @map("co2_city")
+  co2Highway           Float?   @map("co2_highway")
+  nox                  Float?
+  co                   Float?
+  greenScore           Int?     @map("green_score")
+  // Safety tech
+  hasLaneDeparture     Boolean  @default(false) @map("has_lane_departure")
+  hasForwardWarning    Boolean  @default(false) @map("has_forward_warning")
+  hasBlindSpot         Boolean  @default(false) @map("has_blind_spot")
+  hasAdaptiveCruise    Boolean  @default(false) @map("has_adaptive_cruise")
+  hasPedestrianDetect  Boolean  @default(false) @map("has_pedestrian_detect")
+  hasAutoEmergencyBrake Boolean @default(false) @map("has_auto_emergency_brake")
+  hasRearCamera        Boolean  @default(false) @map("has_rear_camera")
+  hasTirePressure      Boolean  @default(false) @map("has_tire_pressure")
+  hasFatigueAlert      Boolean  @default(false) @map("has_fatigue_alert")
+  safetyScore          Float?   @map("safety_score")
+  hasAutoHighBeam      Boolean  @default(false) @map("has_auto_high_beam")
+  hasSpeedLimiter      Boolean  @default(false) @map("has_speed_limiter")
+  hasAlcoLock          Boolean  @default(false) @map("has_alco_lock")
+
+  // ── JSON arrays ───────────────────────────────────────────
+  ownershipHistory String? @map("ownership_history") // JSON
+  recalls          String? // JSON
 
   createdAt DateTime @default(now()) @map("created_at")
 
