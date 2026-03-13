@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports, insurances as insurancesApi } from '../services/api';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 function VehiclePlate({ number }) {
@@ -57,10 +57,11 @@ export default function VehicleDetailPage() {
   if (!vehicle) return <p className="text-center text-surface-500">רכב לא נמצא</p>;
 
   const tabs = [
-    { id: 'services', label: 'טיפולים', icon: Wrench, count: vehicle.services.length },
-    { id: 'expenses', label: 'הוצאות', icon: Receipt, count: vehicle.expenses.length },
-    { id: 'reminders', label: 'תזכורות', icon: Bell, count: vehicle.reminders.length },
-    { id: 'details', label: 'פרטים', icon: FileText },
+    { id: 'services',   label: 'טיפולים',  icon: Wrench,  count: vehicle.services.length },
+    { id: 'expenses',   label: 'הוצאות',   icon: Receipt, count: vehicle.expenses.length },
+    { id: 'reminders',  label: 'תזכורות',  icon: Bell,    count: vehicle.reminders.length },
+    { id: 'insurances', label: 'ביטוחים',  icon: Shield },
+    { id: 'details',    label: 'פרטים',    icon: FileText },
   ];
 
   return (
@@ -129,10 +130,11 @@ export default function VehicleDetailPage() {
         ))}
       </div>
 
-      {tab === 'services' && <ServicesTab vehicleId={vehicle.id} services={vehicle.services} onRefresh={fetchVehicle} />}
-      {tab === 'expenses' && <ExpensesTab vehicleId={vehicle.id} expenses={vehicle.expenses} onRefresh={fetchVehicle} />}
-      {tab === 'reminders' && <RemindersTab vehicleId={vehicle.id} reminders={vehicle.reminders} onRefresh={fetchVehicle} />}
-      {tab === 'details' && <DetailsTab vehicle={vehicle} setVehicle={setVehicle} />}
+      {tab === 'services'   && <ServicesTab vehicleId={vehicle.id} services={vehicle.services} onRefresh={fetchVehicle} />}
+      {tab === 'expenses'   && <ExpensesTab vehicleId={vehicle.id} expenses={vehicle.expenses} onRefresh={fetchVehicle} />}
+      {tab === 'reminders'  && <RemindersTab vehicleId={vehicle.id} reminders={vehicle.reminders} onRefresh={fetchVehicle} />}
+      {tab === 'insurances' && <InsurancesTab vehicleId={vehicle.id} />}
+      {tab === 'details'    && <DetailsTab vehicle={vehicle} setVehicle={setVehicle} />}
     </div>
   );
 }
