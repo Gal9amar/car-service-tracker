@@ -525,8 +525,8 @@ function DetailsTab({ vehicle, setVehicle }) {
     try {
       const res = await vehiclesApi.refresh(vehicle.id);
       setVehicle(prev => ({ ...prev, ...res.vehicle }));
-    } catch {
-      setRefreshError('שגיאה בעדכון הנתונים, נסה שוב');
+    } catch (err) {
+      setRefreshError(err.message || 'שגיאה בעדכון הנתונים');
     } finally {
       setRefreshing(false);
     }
