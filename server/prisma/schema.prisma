@@ -162,7 +162,6 @@ enum ServiceType {
   BRAKES
   TIRES
   BATTERY
-  TEST
   AC
   TIMING_BELT
   FILTERS
