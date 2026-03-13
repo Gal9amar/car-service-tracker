@@ -256,8 +256,16 @@ function VehicleCard({ vehicle }) {
           <p className="text-sm font-bold text-surface-800 dark:text-white">{vehicle.year}</p>
         </div>
 
+        {/* Mileage */}
+        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
+          <p className="text-xs text-surface-400 mb-0.5">ק״מ</p>
+          <p className="text-sm font-bold text-surface-800 dark:text-white">
+            {vehicle.currentMileage ? formatNumber(vehicle.currentMileage) : '—'}
+          </p>
+        </div>
+
         {/* Test */}
-        <div className={`col-span-2 rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
+        <div className={`rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
           <p className="text-xs opacity-70 mb-0.5">טסט</p>
           <p className="text-sm font-bold leading-tight">
             {vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
