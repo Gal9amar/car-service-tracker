@@ -59,6 +59,27 @@ router.post('/', async (req, res, next) => {
       },
     });
 
+    // צור תזכורת אוטומטית לפקיעת הביטוח — בטל תזכורות ישנות מאותו סוג
+    const reminderTitle = `ביטוח ${{ MANDATORY: 'חובה', THIRD_PARTY: "צד ג'", COMPREHENSIVE: 'מקיף' }[insurance.insuranceType]} — ${insurance.company}`;
+    await prisma.reminder.updateMany({
+      where: {
+        vehicleId:    data.vehicleId,
+        reminderType: 'INSURANCE',
+        title:        { contains: { MANDATORY: 'חובה', THIRD_PARTY: "צד ג", COMPREHENSIVE: 'מקיף' }[insurance.insuranceType] },
+        isActive:     true,
+      },
+      data: { isActive: false },
+    });
+    await prisma.reminder.create({
+      data: {
+        vehicleId:     data.vehicleId,
+        reminderType:  'INSURANCE',
+        title:         reminderTitle,
+        dueDate:       new Date(data.endDate),
+        intervalMonths: 12,
+      },
+    });
+
     // שלח מייל אישור
     try {
       const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { email: true, name: true } });
