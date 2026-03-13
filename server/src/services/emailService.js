@@ -3,6 +3,8 @@
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Car Tracker <onboarding@resend.dev>';
+// כל עוד אין דומיין מאומת ב-Resend, שולחים רק לכתובת המאושרת
+const RESEND_ALLOWED_EMAIL = process.env.RESEND_ALLOWED_EMAIL || 'ga9service@gmail.com';
 
 export async function sendEmail({ to, subject, html }) {
   if (!RESEND_API_KEY) {
@@ -10,13 +12,16 @@ export async function sendEmail({ to, subject, html }) {
     return;
   }
 
+  // Resend ללא דומיין מאומת — שלח לכתובת המאושרת בלבד
+  const recipient = RESEND_ALLOWED_EMAIL || to;
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+    body: JSON.stringify({ from: FROM_EMAIL, to: recipient, subject, html }),
   });
 
   if (!res.ok) {
@@ -25,6 +30,7 @@ export async function sendEmail({ to, subject, html }) {
     throw new Error(err.message || 'Failed to send email');
   }
 
+  console.log(`📧 Email sent to ${recipient}: ${subject}`);
   return res.json();
 }
 
