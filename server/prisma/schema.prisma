@@ -118,7 +118,8 @@ model Vehicle {
   ownershipHistory String? @map("ownership_history") // JSON
   recalls          String? // JSON
 
-  createdAt DateTime @default(now()) @map("created_at")
+  govDataUpdatedAt DateTime? @map("gov_data_updated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   services  Service[]
