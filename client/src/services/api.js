@@ -98,4 +98,12 @@ export const reports = {
   vehiclePdfUrl: (vehicleId) => `${API_BASE}/reports/vehicles/${vehicleId}/pdf`,
 };
 
+// Insurances
+export const insurances = {
+  list:   (vehicleId) => request(`/insurances?vehicleId=${vehicleId}`),
+  create: (data)      => request('/insurances', { method: 'POST', body: data }),
+  update: (id, data)  => request(`/insurances/${id}`, { method: 'PUT', body: data }),
+  delete: (id)        => request(`/insurances/${id}`, { method: 'DELETE' }),
+};
+
 
