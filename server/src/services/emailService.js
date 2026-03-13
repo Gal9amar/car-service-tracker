@@ -103,3 +103,69 @@ export function buildReminderEmailHtml({ userName, reminders }) {
     </html>
   `;
 }
+
+// ─── תבנית מייל הוספת תזכורת חדשה ──────────────────────────────────────────
+
+export function buildNewReminderEmailHtml({ userName, reminder, vehicle }) {
+  const dueDateStr = reminder.dueDate
+    ? new Date(reminder.dueDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+  const mileageStr = reminder.dueMileage
+    ? `${Number(reminder.dueMileage).toLocaleString('he-IL')} ק"מ`
+    : null;
+
+  const whenLines = [
+    dueDateStr && `<li style="margin:4px 0;color:#374151;">📅 תאריך: <strong>${dueDateStr}</strong></li>`,
+    mileageStr && `<li style="margin:4px 0;color:#374151;">🚗 קילומטראז': <strong>${mileageStr}</strong></li>`,
+    reminder.intervalMonths && `<li style="margin:4px 0;color:#374151;">🔁 חוזרת כל: <strong>${reminder.intervalMonths} חודשים</strong></li>`,
+    reminder.intervalKm && `<li style="margin:4px 0;color:#374151;">🔁 חוזרת כל: <strong>${Number(reminder.intervalKm).toLocaleString('he-IL')} ק"מ</strong></li>`,
+  ].filter(Boolean).join('');
+
+  const typeLabels = {
+    TEST: 'טסט שנתי', OIL: 'החלפת שמן', INSURANCE: 'ביטוח',
+    LICENSE: 'רישוי', TIRES: 'צמיגים', BRAKES: 'בלמים', CUSTOM: 'מותאם אישית',
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+    <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;direction:rtl;">
+      <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        
+        <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);padding:28px 32px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:8px;">🔔</div>
+          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">תזכורת חדשה נוספה</h1>
+          <p style="margin:6px 0 0;color:#c7d2fe;font-size:14px;">${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}</p>
+        </div>
+
+        <div style="padding:28px 32px;">
+          <p style="color:#374151;margin:0 0 20px;">שלום ${userName || ''},</p>
+          <p style="color:#374151;margin:0 0 20px;">נוספה תזכורת חדשה לרכב שלך:</p>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+            <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#1e293b;">
+              ${reminder.title}
+            </p>
+            <p style="margin:0 0 14px;font-size:13px;color:#64748b;">
+              סוג: ${typeLabels[reminder.reminderType] || reminder.reminderType}
+            </p>
+            ${whenLines ? `<ul style="margin:0;padding-right:18px;list-style:none;">${whenLines}</ul>` : ''}
+          </div>
+
+          <div style="text-align:center;">
+            <a href="${process.env.FRONTEND_URL || 'https://car-service-tracker.up.railway.app'}"
+               style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">
+              פתח את האפליקציה
+            </a>
+          </div>
+        </div>
+
+        <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;">
+          <p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker · מעקב טיפולים לרכב</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
