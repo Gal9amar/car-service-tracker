@@ -81,10 +81,45 @@ app.use(errorHandler);
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
   startReminderCron();
+  await createMissingInsuranceReminders();
 });
+
+// ── חד-פעמי: יצירת תזכורות לביטוחים קיימים ללא תזכורת ────────────────────
+async function createMissingInsuranceReminders() {
+  try {
+    const typeLabel = { MANDATORY: 'חובה', THIRD_PARTY: "צד ג'", COMPREHENSIVE: 'מקיף' };
+    const insurances = await prisma.insurance.findMany({
+      where: { isActive: true },
+      select: { id: true, vehicleId: true, insuranceType: true, company: true, endDate: true },
+    });
+
+    let created = 0;
+    for (const ins of insurances) {
+      const title = `ביטוח ${typeLabel[ins.insuranceType]} — ${ins.company}`;
+      const existing = await prisma.reminder.findFirst({
+        where: { vehicleId: ins.vehicleId, reminderType: 'INSURANCE', title, isActive: true },
+      });
+      if (existing) continue;
+
+      await prisma.reminder.create({
+        data: {
+          vehicleId:      ins.vehicleId,
+          reminderType:   'INSURANCE',
+          title,
+          dueDate:        ins.endDate,
+          intervalMonths: 12,
+        },
+      });
+      created++;
+    }
+    if (created > 0) console.log(`✅ Created ${created} missing insurance reminders`);
+  } catch (e) {
+    console.error('Insurance reminder migration failed:', e.message);
+  }
+}
 
 export default app;
 
