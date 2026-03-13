@@ -7,6 +7,15 @@ import { lookupVehicle } from '../services/vehicleLookup.js';
 const router = Router();
 router.use(authenticate);
 
+// ── helpers ───────────────────────────────────────────────────────────────
+function parseVehicle(v) {
+  return {
+    ...v,
+    ownershipHistory: v.ownershipHistory ? JSON.parse(v.ownershipHistory) : [],
+    recalls:          v.recalls          ? JSON.parse(v.recalls)          : [],
+  };
+}
+
 // GET /api/vehicles/lookup/:plate
 router.get('/lookup/:plate', async (req, res, next) => {
   try {
@@ -31,108 +40,192 @@ router.get('/', async (req, res, next) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-    // Parse JSON fields
-    const parsed = vehicles.map(v => ({
-      ...v,
-      ownershipHistory: v.ownershipHistory ? JSON.parse(v.ownershipHistory) : [],
-      recalls: v.recalls ? JSON.parse(v.recalls) : [],
-    }));
-    res.json({ vehicles: parsed });
+    res.json({ vehicles: vehicles.map(parseVehicle) });
   } catch (err) { next(err); }
 });
 
 // POST /api/vehicles
+const boolOpt  = z.boolean().optional();
+const intOpt   = z.number().int().optional().nullable();
+const floatOpt = z.number().optional().nullable();
+const strOpt   = z.string().optional().nullable();
+
 const createVehicleSchema = z.object({
-  licensePlate:    z.string().min(5).max(10),
-  manufacturer:    z.string().min(1),
-  model:           z.string().min(1),
-  year:            z.number().int().min(1900).max(2030),
-  color:           z.string().optional(),
-  fuelType:        z.string().optional(),
-  engineModel:     z.string().optional(),
-  trim:            z.string().optional(),
-  vin:             z.string().optional(),
-  frontTire:       z.string().optional(),
-  rearTire:        z.string().optional(),
-  testExpiry:      z.string().optional(),
-  lastTest:        z.string().optional(),
-  firstRegistered: z.string().optional(),
-  currentMileage:  z.number().int().optional(),
-  nickname:        z.string().optional(),
-  ownership:       z.string().optional(),
+  // User
+  nickname:       strOpt,
+  currentMileage: intOpt,
+  // Main
+  licensePlate:     z.string().min(5).max(10),
+  manufacturer:     z.string().min(1),
+  manufacturerCode: intOpt,
+  model:            z.string().min(1),
+  modelCode:        strOpt,
+  modelId:          intOpt,
+  vehicleType:      strOpt,
+  year:             z.number().int().min(1900).max(2030),
+  color:            strOpt,
+  colorCode:        intOpt,
+  fuelType:         strOpt,
+  engineModel:      strOpt,
+  trim:             strOpt,
+  safetyRating:     strOpt,
+  pollutionLevel:   intOpt,
+  vin:              strOpt,
+  frontTire:        strOpt,
+  rearTire:         strOpt,
+  lastTest:         strOpt,
+  testExpiry:       strOpt,
+  ownership:        strOpt,
+  registrationNote: strOpt,
+  firstRegistered:  strOpt,
   // Technical
-  engineNumber:    z.string().optional(),
-  testKm:          z.number().int().optional(),
-  structureChange: z.boolean().optional(),
-  colorChange:     z.boolean().optional(),
-  tireChange:      z.boolean().optional(),
-  hasGrapam:       z.boolean().optional(),
-  origin:          z.string().optional(),
-  pollutionLevel:  z.number().int().optional(),
+  engineNumber:       strOpt,
+  testKm:             intOpt,
+  structureChange:    boolOpt,
+  hasGrapam:          boolOpt,
+  colorChange:        boolOpt,
+  tireChange:         boolOpt,
+  firstRegisteredDate: strOpt,
+  origin:             strOpt,
   // WLTP
-  horsePower:      z.number().int().optional(),
-  engineCC:        z.number().int().optional(),
-  co2:             z.number().optional(),
-  fuelConsumption: z.number().optional(),
-  // JSON arrays
-  ownershipHistory: z.array(z.any()).optional(),
-  recalls:          z.array(z.any()).optional(),
+  horsePower:           intOpt,
+  engineCC:             intOpt,
+  weight:               intOpt,
+  doors:                intOpt,
+  seats:                intOpt,
+  bodyType:             strOpt,
+  driveType:            strOpt,
+  transmission:         strOpt,
+  standardType:         strOpt,
+  towingWithBrakes:     intOpt,
+  towingWithoutBrakes:  intOpt,
+  airbags:              intOpt,
+  electricWindows:      intOpt,
+  hasAC:                boolOpt,
+  hasABS:               boolOpt,
+  hasPowerSteering:     boolOpt,
+  hasStabControl:       boolOpt,
+  hasSunroof:           boolOpt,
+  hasAlloyWheels:       boolOpt,
+  hasTrunkRack:         boolOpt,
+  co2:                  floatOpt,
+  co2City:              floatOpt,
+  co2Highway:           floatOpt,
+  nox:                  floatOpt,
+  co:                   floatOpt,
+  greenScore:           intOpt,
+  hasLaneDeparture:     boolOpt,
+  hasForwardWarning:    boolOpt,
+  hasBlindSpot:         boolOpt,
+  hasAdaptiveCruise:    boolOpt,
+  hasPedestrianDetect:  boolOpt,
+  hasAutoEmergencyBrake: boolOpt,
+  hasRearCamera:        boolOpt,
+  hasTirePressure:      boolOpt,
+  hasFatigueAlert:      boolOpt,
+  safetyScore:          floatOpt,
+  hasAutoHighBeam:      boolOpt,
+  hasSpeedLimiter:      boolOpt,
+  hasAlcoLock:          boolOpt,
+  // JSON
+  ownershipHistory: z.array(z.any()).optional().nullable(),
+  recalls:          z.array(z.any()).optional().nullable(),
 });
 
 router.post('/', async (req, res, next) => {
   try {
-    const data = createVehicleSchema.parse(req.body);
+    const d = createVehicleSchema.parse(req.body);
 
     const vehicle = await prisma.vehicle.create({
       data: {
-        licensePlate:    data.licensePlate,
-        manufacturer:    data.manufacturer,
-        model:           data.model,
-        year:            data.year,
-        userId:          req.user.id,
-        color:           data.color,
-        fuelType:        data.fuelType,
-        engineModel:     data.engineModel,
-        trim:            data.trim,
-        vin:             data.vin,
-        frontTire:       data.frontTire,
-        rearTire:        data.rearTire,
-        testExpiry:      data.testExpiry ? new Date(data.testExpiry) : null,
-        lastTest:        data.lastTest   ? new Date(data.lastTest)   : null,
-        firstRegistered: data.firstRegistered,
-        currentMileage:  data.currentMileage,
-        nickname:        data.nickname,
-        ownership:       data.ownership,
-        engineNumber:    data.engineNumber,
-        testKm:          data.testKm,
-        structureChange: data.structureChange ?? false,
-        colorChange:     data.colorChange     ?? false,
-        tireChange:      data.tireChange      ?? false,
-        hasGrapam:       data.hasGrapam       ?? false,
-        origin:          data.origin,
-        pollutionLevel:  data.pollutionLevel,
-        horsePower:      data.horsePower,
-        engineCC:        data.engineCC,
-        co2:             data.co2,
-        fuelConsumption: data.fuelConsumption,
-        ownershipHistory: data.ownershipHistory ? JSON.stringify(data.ownershipHistory) : null,
-        recalls:          data.recalls         ? JSON.stringify(data.recalls)          : null,
+        userId: req.user.id,
+        nickname:       d.nickname,
+        currentMileage: d.currentMileage,
+        // Main
+        licensePlate:     d.licensePlate,
+        manufacturer:     d.manufacturer,
+        manufacturerCode: d.manufacturerCode,
+        model:            d.model,
+        modelCode:        d.modelCode,
+        modelId:          d.modelId,
+        vehicleType:      d.vehicleType,
+        year:             d.year,
+        color:            d.color,
+        colorCode:        d.colorCode,
+        fuelType:         d.fuelType,
+        engineModel:      d.engineModel,
+        trim:             d.trim,
+        safetyRating:     d.safetyRating,
+        pollutionLevel:   d.pollutionLevel,
+        vin:              d.vin,
+        frontTire:        d.frontTire,
+        rearTire:         d.rearTire,
+        lastTest:         d.lastTest   ? new Date(d.lastTest)   : null,
+        testExpiry:       d.testExpiry ? new Date(d.testExpiry) : null,
+        ownership:        d.ownership,
+        registrationNote: d.registrationNote,
+        firstRegistered:  d.firstRegistered,
+        // Technical
+        engineNumber:       d.engineNumber,
+        testKm:             d.testKm,
+        structureChange:    d.structureChange   ?? false,
+        hasGrapam:          d.hasGrapam         ?? false,
+        colorChange:        d.colorChange       ?? false,
+        tireChange:         d.tireChange        ?? false,
+        firstRegisteredDate: d.firstRegisteredDate,
+        origin:             d.origin,
+        // WLTP
+        horsePower:           d.horsePower,
+        engineCC:             d.engineCC,
+        weight:               d.weight,
+        doors:                d.doors,
+        seats:                d.seats,
+        bodyType:             d.bodyType,
+        driveType:            d.driveType,
+        transmission:         d.transmission,
+        standardType:         d.standardType,
+        towingWithBrakes:     d.towingWithBrakes,
+        towingWithoutBrakes:  d.towingWithoutBrakes,
+        airbags:              d.airbags,
+        electricWindows:      d.electricWindows,
+        hasAC:                d.hasAC             ?? false,
+        hasABS:               d.hasABS            ?? false,
+        hasPowerSteering:     d.hasPowerSteering  ?? false,
+        hasStabControl:       d.hasStabControl    ?? false,
+        hasSunroof:           d.hasSunroof        ?? false,
+        hasAlloyWheels:       d.hasAlloyWheels    ?? false,
+        hasTrunkRack:         d.hasTrunkRack      ?? false,
+        co2:                  d.co2,
+        co2City:              d.co2City,
+        co2Highway:           d.co2Highway,
+        nox:                  d.nox,
+        co:                   d.co,
+        greenScore:           d.greenScore,
+        hasLaneDeparture:     d.hasLaneDeparture     ?? false,
+        hasForwardWarning:    d.hasForwardWarning    ?? false,
+        hasBlindSpot:         d.hasBlindSpot         ?? false,
+        hasAdaptiveCruise:    d.hasAdaptiveCruise    ?? false,
+        hasPedestrianDetect:  d.hasPedestrianDetect  ?? false,
+        hasAutoEmergencyBrake: d.hasAutoEmergencyBrake ?? false,
+        hasRearCamera:        d.hasRearCamera        ?? false,
+        hasTirePressure:      d.hasTirePressure      ?? false,
+        hasFatigueAlert:      d.hasFatigueAlert      ?? false,
+        safetyScore:          d.safetyScore,
+        hasAutoHighBeam:      d.hasAutoHighBeam      ?? false,
+        hasSpeedLimiter:      d.hasSpeedLimiter      ?? false,
+        hasAlcoLock:          d.hasAlcoLock          ?? false,
+        ownershipHistory: d.ownershipHistory ? JSON.stringify(d.ownershipHistory) : null,
+        recalls:          d.recalls          ? JSON.stringify(d.recalls)          : null,
       },
     });
 
     if (vehicle.testExpiry) {
       await prisma.reminder.create({
-        data: {
-          vehicleId:     vehicle.id,
-          reminderType:  'TEST',
-          title:         'טסט שנתי',
-          dueDate:       vehicle.testExpiry,
-          intervalMonths: 12,
-        },
+        data: { vehicleId: vehicle.id, reminderType: 'TEST', title: 'טסט שנתי', dueDate: vehicle.testExpiry, intervalMonths: 12 },
       });
     }
 
-    res.status(201).json({ vehicle });
+    res.status(201).json({ vehicle: parseVehicle(vehicle) });
   } catch (err) { next(err); }
 });
 
@@ -142,43 +235,28 @@ router.get('/:id', async (req, res, next) => {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: req.params.id, userId: req.user.id },
       include: {
-        services: {
-          include: { garage: { select: { id: true, name: true } }, attachments: true },
-          orderBy: { date: 'desc' },
-          take: 20,
-        },
+        services:  { include: { garage: { select: { id: true, name: true } }, attachments: true }, orderBy: { date: 'desc' }, take: 20 },
         expenses:  { orderBy: { date: 'desc' }, take: 20 },
         reminders: { orderBy: { dueDate: 'asc' } },
       },
     });
-
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
-
-    res.json({
-      vehicle: {
-        ...vehicle,
-        ownershipHistory: vehicle.ownershipHistory ? JSON.parse(vehicle.ownershipHistory) : [],
-        recalls:          vehicle.recalls          ? JSON.parse(vehicle.recalls)          : [],
-      }
-    });
+    res.json({ vehicle: parseVehicle(vehicle) });
   } catch (err) { next(err); }
 });
 
-// PUT /api/vehicles/:id
+// PUT /api/vehicles/:id  (user-editable fields only)
 router.put('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.vehicle.findFirst({ where: { id: req.params.id, userId: req.user.id } });
     if (!existing) return res.status(404).json({ error: 'Vehicle not found.' });
-
-    const updateSchema = z.object({
-      currentMileage: z.number().int().optional(),
-      nickname:       z.string().optional().nullable(),
-      imageUrl:       z.string().url().optional(),
-    });
-
-    const data = updateSchema.parse(req.body);
+    const data = z.object({
+      currentMileage: intOpt,
+      nickname: strOpt,
+      imageUrl: z.string().url().optional().nullable(),
+    }).parse(req.body);
     const vehicle = await prisma.vehicle.update({ where: { id: req.params.id }, data });
-    res.json({ vehicle });
+    res.json({ vehicle: parseVehicle(vehicle) });
   } catch (err) { next(err); }
 });
 
