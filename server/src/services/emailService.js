@@ -169,3 +169,72 @@ export function buildNewReminderEmailHtml({ userName, reminder, vehicle }) {
     </html>
   `;
 }
+
+// ─── תבנית מייל הוספת טיפול ─────────────────────────────────────────────────
+
+export function buildNewServiceEmailHtml({ userName, service, vehicle, garage }) {
+  const serviceTypeLabels = {
+    PERIODIC: 'טיפול תקופתי', OIL: 'החלפת שמן', BRAKES: 'בלמים', TIRES: 'צמיגים',
+    BATTERY: 'מצבר', TEST: 'טסט שנתי', AC: 'מיזוג אוויר', TIMING_BELT: 'רצועת תזמון',
+    FILTERS: 'פילטרים', SUSPENSION: 'מתלים', ELECTRICAL: 'חשמל', BODY_WORK: 'פחחות',
+    GENERAL: 'טיפול כללי', OTHER: 'אחר',
+  };
+
+  const dateStr = new Date(service.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+  const nextServiceDate = service.nextServiceMileage
+    ? (() => { const d = new Date(service.date); d.setFullYear(d.getFullYear() + 1); return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }); })()
+    : null;
+
+  const rows = [
+    ['סוג טיפול',   serviceTypeLabels[service.serviceType] || service.serviceType],
+    ['תאריך',       dateStr],
+    service.mileage        && ['קילומטראז\'', `${Number(service.mileage).toLocaleString('he-IL')} ק"מ`],
+    service.cost > 0       && ['עלות', `₪${Number(service.cost).toLocaleString('he-IL')}`],
+    garage?.name           && ['מוסך', garage.name],
+    service.description    && ['תיאור', service.description],
+    service.warrantyUntil  && ['אחריות עד', new Date(service.warrantyUntil).toLocaleDateString('he-IL')],
+    service.nextServiceMileage && ['ק"מ לטיפול הבא', `${Number(service.nextServiceMileage).toLocaleString('he-IL')} ק"מ`],
+    nextServiceDate        && ['תאריך יעד לטיפול הבא', nextServiceDate],
+  ].filter(Boolean);
+
+  const rowsHtml = rows.map(([label, value]) => `
+    <tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;white-space:nowrap;">${label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;color:#1e293b;font-size:14px;font-weight:500;">${value}</td>
+    </tr>`).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+    <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;direction:rtl;">
+      <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);padding:28px 32px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:8px;">🔧</div>
+          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">טיפול חדש נרשם</h1>
+          <p style="margin:6px 0 0;color:#c7d2fe;font-size:14px;">${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}</p>
+        </div>
+        <div style="padding:28px 32px;">
+          <p style="color:#374151;margin:0 0 20px;">שלום ${userName || ''},</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          ${nextServiceDate ? `
+          <div style="margin-top:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px;">
+            <p style="margin:0;color:#166534;font-size:14px;">📅 <strong>תזכורת לטיפול הבא נוצרה אוטומטית</strong> ל-${nextServiceDate}</p>
+          </div>` : ''}
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${process.env.FRONTEND_URL || 'https://car-service-tracker.up.railway.app'}"
+               style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">
+              פתח את האפליקציה
+            </a>
+          </div>
+        </div>
+        <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;">
+          <p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker · מעקב טיפולים לרכב</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
