@@ -732,6 +732,202 @@ function DetailsTab({ vehicle, setVehicle }) {
   );
 }
 
+// ─── Insurances Tab ──────────────────────────────────────────────────────────
+const INSURANCE_TYPES = [
+  { value: 'MANDATORY',    label: 'חובה' },
+  { value: 'THIRD_PARTY',  label: "צד ג'" },
+  { value: 'COMPREHENSIVE',label: 'מקיף' },
+];
+
+function InsurancesTab({ vehicleId }) {
+  const [list, setList]           = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const empty = { insuranceType: 'MANDATORY', company: '', policyNumber: '', startDate: '', endDate: '', cost: '', notes: '' };
+  const [form, setForm]           = useState(empty);
+
+  const load = () => {
+    setLoading(true);
+    insurancesApi.list(vehicleId)
+      .then(r => setList(r.insurances))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+  useState(() => { load(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const [, setInit] = useState(() => { load(); return null; });
+  void setInit;
+
+  const openAdd  = ()  => { setForm(empty); setEditingId(null); setShowForm(true); };
+  const openEdit = (ins) => {
+    setForm({
+      insuranceType: ins.insuranceType,
+      company:       ins.company,
+      policyNumber:  ins.policyNumber || '',
+      startDate:     ins.startDate?.toString().split('T')[0] || '',
+      endDate:       ins.endDate?.toString().split('T')[0]   || '',
+      cost:          ins.cost ? String(ins.cost) : '',
+      notes:         ins.notes || '',
+    });
+    setEditingId(ins.id);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.company || !form.startDate || !form.endDate) return;
+    setSaving(true);
+    try {
+      const payload = { ...form, vehicleId, cost: form.cost ? Number(form.cost) : null };
+      if (editingId) await insurancesApi.update(editingId, payload);
+      else            await insurancesApi.create(payload);
+      setShowForm(false);
+      load();
+    } catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try { await insurancesApi.delete(id); load(); }
+    catch (e) { console.error(e); }
+    finally { setDeletingId(null); }
+  };
+
+  const typeLabel = Object.fromEntries(INSURANCE_TYPES.map(t => [t.value, t.label]));
+  const fmt = d => d ? new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' }) : '—';
+  const daysLeft = d => Math.ceil((new Date(d) - new Date()) / (1000 * 60 * 60 * 24));
+
+  const active   = list.filter(i => i.isActive);
+  const inactive = list.filter(i => !i.isActive);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-brand-500" size={28} /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+          <Plus size={16} /> הוסף ביטוח
+        </button>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div className="card p-5 space-y-4">
+          <h3 className="font-bold">{editingId ? 'עריכת ביטוח' : 'ביטוח חדש'}</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="label">סוג ביטוח</label>
+              <select className="input" value={form.insuranceType} onChange={e => setForm(f => ({...f, insuranceType: e.target.value}))}>
+                {INSURANCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">חברת ביטוח *</label>
+              <input className="input" value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))} placeholder="מנורה, הפניקס..." />
+            </div>
+            <div>
+              <label className="label">מספר פוליסה</label>
+              <input className="input" value={form.policyNumber} onChange={e => setForm(f => ({...f, policyNumber: e.target.value}))} dir="ltr" />
+            </div>
+            <div>
+              <label className="label">תאריך תחילה *</label>
+              <input type="date" className="input" value={form.startDate} onChange={e => setForm(f => ({...f, startDate: e.target.value}))} />
+            </div>
+            <div>
+              <label className="label">תאריך סיום *</label>
+              <input type="date" className="input" value={form.endDate} onChange={e => setForm(f => ({...f, endDate: e.target.value}))} />
+            </div>
+            <div>
+              <label className="label">פרמיה שנתית (₪)</label>
+              <input type="number" className="input" value={form.cost} onChange={e => setForm(f => ({...f, cost: e.target.value}))} dir="ltr" />
+            </div>
+            <div className="col-span-2">
+              <label className="label">הערות</label>
+              <input className="input" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} />
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <button onClick={() => setShowForm(false)} className="btn-secondary">ביטול</button>
+            <button onClick={handleSave} disabled={saving || !form.company || !form.startDate || !form.endDate} className="btn-primary flex items-center gap-2">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : null}
+              שמור
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active insurances */}
+      {active.length === 0 && !showForm && (
+        <div className="card p-10 text-center">
+          <Shield size={40} className="mx-auto text-surface-300 mb-3" />
+          <p className="text-surface-500">אין ביטוחים פעילים</p>
+          <button onClick={openAdd} className="btn-primary mt-4 inline-flex items-center gap-2"><Plus size={16}/>הוסף ביטוח</button>
+        </div>
+      )}
+
+      {active.map(ins => {
+        const dl = daysLeft(ins.endDate);
+        const urgent = dl <= 7;
+        const warn   = dl <= 30;
+        return (
+          <div key={ins.id} className="card p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                  ins.insuranceType === 'MANDATORY'    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                  ins.insuranceType === 'THIRD_PARTY'  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+                  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                }`}>{typeLabel[ins.insuranceType]}</span>
+                <span className="font-semibold">{ins.company}</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => openEdit(ins)} className="p-1.5 text-surface-400 hover:text-brand-600 transition-colors"><Pencil size={15}/></button>
+                <button onClick={() => handleDelete(ins.id)} disabled={deletingId === ins.id} className="p-1.5 text-surface-400 hover:text-red-500 transition-colors">
+                  {deletingId === ins.id ? <Loader2 size={15} className="animate-spin"/> : <Trash2 size={15}/>}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {ins.policyNumber && <div><p className="text-xs text-surface-400">פוליסה</p><p className="font-medium" dir="ltr">{ins.policyNumber}</p></div>}
+              <div><p className="text-xs text-surface-400">תחילה</p><p className="font-medium">{fmt(ins.startDate)}</p></div>
+              <div><p className="text-xs text-surface-400">סיום</p><p className="font-medium">{fmt(ins.endDate)}</p></div>
+              {ins.cost && <div><p className="text-xs text-surface-400">פרמיה</p><p className="font-medium">₪{Number(ins.cost).toLocaleString('he-IL')}</p></div>}
+            </div>
+            {warn && (
+              <div className={`mt-3 text-xs font-medium px-3 py-2 rounded-lg ${urgent ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'}`}>
+                {urgent ? '⚠️' : '📅'} פג תוקף בעוד {dl} ימים
+              </div>
+            )}
+            {ins.notes && <p className="mt-2 text-xs text-surface-400">{ins.notes}</p>}
+          </div>
+        );
+      })}
+
+      {/* Inactive / history */}
+      {inactive.length > 0 && (
+        <details className="card p-4">
+          <summary className="cursor-pointer text-sm text-surface-500 font-medium">היסטוריה ({inactive.length})</summary>
+          <div className="mt-3 space-y-2">
+            {inactive.map(ins => (
+              <div key={ins.id} className="flex items-center justify-between py-2 border-b border-surface-100 dark:border-surface-700 last:border-0 opacity-60">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">{typeLabel[ins.insuranceType]}</span>
+                  <span className="text-surface-400">·</span>
+                  <span>{ins.company}</span>
+                </div>
+                <span className="text-xs text-surface-400">{fmt(ins.endDate)}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ text, icon, action, onAction }) {
   return (
     <div className="card p-12 text-center">
