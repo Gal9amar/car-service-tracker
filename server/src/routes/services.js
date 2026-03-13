@@ -121,6 +121,14 @@ router.put('/:id', async (req, res, next) => {
       },
     });
 
+    // עדכן ק"מ של הרכב אם הק"מ החדש גבוה יותר
+    if (data.mileage) {
+      const vehicle = await prisma.vehicle.findUnique({ where: { id: existing.vehicleId }, select: { currentMileage: true } });
+      if (!vehicle.currentMileage || data.mileage > vehicle.currentMileage) {
+        await prisma.vehicle.update({ where: { id: existing.vehicleId }, data: { currentMileage: data.mileage } });
+      }
+    }
+
     res.json({ service });
   } catch (err) {
     next(err);
