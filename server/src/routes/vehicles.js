@@ -365,7 +365,10 @@ router.post('/:id/refresh', async (req, res, next) => {
     }
 
     res.json({ vehicle: parseVehicle(updated), refreshed: true });
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.error('❌ Refresh error:', err.message, err.stack);
+    next(err);
+  }
 });
 
 // DELETE /api/vehicles/:id
