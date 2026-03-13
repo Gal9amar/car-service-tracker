@@ -39,6 +39,7 @@ export const vehicles = {
   update: (id, data) => request(`/vehicles/${id}`, { method: 'PUT', body: data }),
   delete: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   lookup: (plate) => request(`/vehicles/lookup/${plate}`),
+  refresh: (id) => request(`/vehicles/${id}/refresh`, { method: 'POST' }),
 };
 
 // Services
