@@ -1,7 +1,7 @@
 // services/reminderCron.js
 import cron from 'node-cron';
 import prisma from '../utils/prisma.js';
-import { sendEmail, buildReminderEmailHtml } from './emailService.js';
+import { sendEmail, buildReminderEmailHtml, buildInsuranceExpiryEmailHtml, buildRecallAlertEmailHtml } from './emailService.js';
 import { lookupVehicle } from './vehicleLookup.js';
 
 const DAYS_BEFORE = 7;
@@ -69,6 +69,28 @@ async function refreshAllVehicleGovData() {
 
       refreshed++;
       await new Promise(r => setTimeout(r, 300));
+
+      // שלח מייל ריקול אם יש ריקולים חדשים
+      if (fresh.recalls?.length > 0 && fresh.hasActiveRecall) {
+        try {
+          const fullVehicle = await prisma.vehicle.findUnique({
+            where: { id: v.id },
+            include: { user: { select: { email: true, name: true } } },
+          });
+          const prevRecalls = fullVehicle.recalls ? JSON.parse(fullVehicle.recalls) : [];
+          const prevIds = new Set(prevRecalls.map(r => r.id));
+          const newRecalls = fresh.recalls.filter(r => !prevIds.has(r.id));
+
+          if (newRecalls.length > 0 && fullVehicle.user?.email) {
+            await sendEmail({
+              to: fullVehicle.user.email,
+              subject: `⚠️ ריקול חדש לרכב שלך: ${fullVehicle.manufacturer} ${fullVehicle.model}`,
+              html: buildRecallAlertEmailHtml({ userName: fullVehicle.user.name, vehicle: fullVehicle, recalls: newRecalls }),
+            });
+            console.log(`📧 Recall alert sent to ${fullVehicle.user.email}`);
+          }
+        } catch (e) { console.error('Recall email failed:', e.message); }
+      }
     } catch (err) {
       console.error(`❌ Failed to refresh vehicle ${v.licensePlate}:`, err.message);
       failed++;
@@ -154,9 +176,100 @@ async function checkAndSendReminders() {
 
 // ── Schedule ─────────────────────────────────────────────────────────────────
 export function startReminderCron() {
-  cron.schedule('0 8 * * *', checkAndSendReminders, { timezone: 'Asia/Jerusalem' });
-  cron.schedule('0 3 * * 0', refreshAllVehicleGovData, { timezone: 'Asia/Jerusalem' });
-  console.log('⏰ Reminder cron (daily 08:00) + Gov refresh (Sunday 03:00)');
+  cron.schedule('0 8 * * *', checkAndSendReminders,      { timezone: 'Asia/Jerusalem' });
+  cron.schedule('0 8 * * *', checkInsuranceExpiry,       { timezone: 'Asia/Jerusalem' });
+  cron.schedule('0 8 * * *', checkTestExpiry30Days,      { timezone: 'Asia/Jerusalem' });
+  cron.schedule('0 3 * * 0', refreshAllVehicleGovData,   { timezone: 'Asia/Jerusalem' });
+  console.log('⏰ All crons scheduled (daily 08:00 + gov refresh Sunday 03:00)');
+}
+
+// ── ביטוח: בדיקת פקיעה ───────────────────────────────────────────────────────
+async function checkInsuranceExpiry() {
+  console.log('🛡️ Checking insurance expiry...', new Date().toISOString());
+  const now = new Date();
+  const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // שלוף ביטוחים שפגים תוך 30 יום ועדיין פעילים
+  const insurances = await prisma.insurance.findMany({
+    where: {
+      isActive: true,
+      endDate: { gte: now, lte: in30 },
+    },
+    include: {
+      vehicle: {
+        include: { user: { select: { email: true, name: true } } },
+      },
+    },
+  });
+
+  for (const ins of insurances) {
+    const user = ins.vehicle.user;
+    if (!user?.email) continue;
+
+    const daysLeft = Math.ceil((new Date(ins.endDate) - now) / (1000 * 60 * 60 * 24));
+
+    // שלח רק ב-30 ימים ובחזרה ב-7 ימים (throttle לפי יום)
+    const shouldSend = daysLeft <= 7 || daysLeft <= 30;
+    if (!shouldSend) continue;
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `🛡️ ביטוח פג תוקף בעוד ${daysLeft} ימים — ${ins.vehicle.manufacturer} ${ins.vehicle.model}`,
+        html: buildInsuranceExpiryEmailHtml({ userName: user.name, insurance: ins, vehicle: ins.vehicle, daysLeft }),
+      });
+      console.log(`📧 Insurance expiry sent to ${user.email} (${daysLeft} days left)`);
+    } catch (e) { console.error('Insurance expiry email failed:', e.message); }
+  }
+}
+
+// ── טסט: 30 יום מראש ─────────────────────────────────────────────────────────
+async function checkTestExpiry30Days() {
+  console.log('🔍 Checking test expiry 30 days...', new Date().toISOString());
+  const now  = new Date();
+  const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const in7  = new Date(Date.now() +  7 * 24 * 60 * 60 * 1000);
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { testExpiry: { gte: now, lte: in30 } },
+    include: { user: { select: { email: true, name: true } } },
+  });
+
+  for (const v of vehicles) {
+    if (!v.user?.email) continue;
+    const daysLeft = Math.ceil((new Date(v.testExpiry) - now) / (1000 * 60 * 60 * 24));
+    if (daysLeft > 30) continue;
+
+    const fmt = d => new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+    const urgent = daysLeft <= 7;
+    const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"/></head>
+      <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;direction:rtl;">
+      <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,${urgent?'#dc2626,#b91c1c':'#f59e0b,#d97706'});padding:28px 32px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:8px;">${urgent?'⚠️':'🔧'}</div>
+          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">תוקף טסט שנתי פג בעוד ${daysLeft} ימים</h1>
+          <p style="margin:6px 0 0;color:${urgent?'#fecaca':'#fef3c7'};font-size:14px;">${v.manufacturer} ${v.model} · ${v.licensePlate}</p>
+        </div>
+        <div style="padding:28px 32px;">
+          <p style="color:#374151;margin:0 0 16px;">שלום ${v.user.name || ''},</p>
+          <p style="color:#374151;margin:0 0 20px;">תוקף הטסט השנתי לרכב שלך פג ב-<strong>${fmt(v.testExpiry)}</strong> — בעוד ${daysLeft} ימים.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${process.env.FRONTEND_URL||'https://car-service-tracker.up.railway.app'}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">פתח את האפליקציה</a>
+          </div>
+        </div>
+        <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;"><p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker</p></div>
+      </div></body></html>`;
+
+    try {
+      await sendEmail({
+        to: v.user.email,
+        subject: `🔧 טסט שנתי פג בעוד ${daysLeft} ימים — ${v.manufacturer} ${v.model}`,
+        html,
+      });
+      console.log(`📧 Test expiry sent to ${v.user.email} (${daysLeft} days)`);
+    } catch (e) { console.error('Test expiry email failed:', e.message); }
+  }
 }
 
 export { checkAndSendReminders };
