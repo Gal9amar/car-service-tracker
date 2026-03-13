@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { lookupVehicle } from '../services/vehicleLookup.js';
+import { sendEmail, buildNewVehicleEmailHtml } from '../services/emailService.js';
 
 const router = Router();
 router.use(authenticate);
@@ -226,6 +227,24 @@ router.post('/', async (req, res, next) => {
     }
 
     res.status(201).json({ vehicle: parseVehicle(vehicle) });
+
+    // שלח מייל אישור — fire and forget
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { email: true, name: true },
+      });
+      if (user?.email) {
+        const html = buildNewVehicleEmailHtml({ userName: user.name, vehicle: { ...parseVehicle(vehicle), hasActiveRecall: d.recalls?.length > 0 } });
+        await sendEmail({
+          to: user.email,
+          subject: `🚗 רכב חדש נוסף: ${vehicle.manufacturer} ${vehicle.model} (${vehicle.licensePlate})`,
+          html,
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send new vehicle email:', emailErr.message);
+    }
   } catch (err) { next(err); }
 });
 
