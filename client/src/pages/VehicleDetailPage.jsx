@@ -496,25 +496,203 @@ function RemindersTab({ vehicleId, reminders, onRefresh }) {
 
 // ─── Details Tab ─────────────────────────────────────────────────────────────
 
-function DetailsTab({ vehicle }) {
-  const fields = [
-    ['מספר רכב', vehicle.licensePlate], ['יצרן', vehicle.manufacturer], ['דגם', vehicle.model],
-    ['שנה', vehicle.year], ['צבע', vehicle.color], ['דלק', vehicle.fuelType],
-    ['מנוע', vehicle.engineModel], ['גימור', vehicle.trim], ['מספר שלדה', vehicle.vin],
-    ['צמיג קדמי', vehicle.frontTire], ['צמיג אחורי', vehicle.rearTire],
-    ['עלייה לכביש', vehicle.firstRegistered], ['בעלות', vehicle.ownership],
-    ['טסט אחרון', vehicle.lastTest], ['תוקף טסט', vehicle.testExpiry],
-  ];
+function DField({ label, value }) {
+  if (value === null || value === undefined || value === '' || value === false) return null;
   return (
-    <div className="card p-6">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {fields.map(([label, value]) => (
-          <div key={label}>
-            <p className="text-xs text-surface-500 mb-0.5">{label}</p>
-            <p className="font-medium">{value || '-'}</p>
+    <div>
+      <p className="text-xs text-surface-400 mb-0.5">{label}</p>
+      <p className="font-medium text-sm">{value === true ? '✓' : value}</p>
+    </div>
+  );
+}
+
+function DSection({ title, children }) {
+  return (
+    <div className="card p-5">
+      <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-4">{title}</p>
+      <div className="grid grid-cols-2 gap-3">{children}</div>
+    </div>
+  );
+}
+
+function DetailsTab({ vehicle }) {
+  const fmtDate = (yyyymm) => {
+    if (!yyyymm) return '';
+    const s = String(yyyymm);
+    if (s.length === 6) return `${s.slice(4,6)}/${s.slice(0,4)}`;
+    return s;
+  };
+
+  const recalls = vehicle.recalls || [];
+  const ownershipHistory = vehicle.ownershipHistory || [];
+
+  const safetyFeatures = [
+    vehicle.hasABS           && 'ABS',
+    vehicle.hasStabControl   && 'יציבות אקטיבית (ESC)',
+    vehicle.hasPowerSteering && 'הגה כוח',
+    vehicle.hasAC            && 'מיזוג אוויר',
+    vehicle.hasSunroof       && 'גג שמש',
+    vehicle.hasAlloyWheels   && 'גלגלי סגסוגת',
+    vehicle.hasTrunkRack     && 'ארגז גג',
+    vehicle.hasRearCamera    && 'מצלמת אחור',
+    vehicle.hasTirePressure  && 'חיישני לחץ צמיגים',
+    vehicle.hasFatigueAlert  && 'התראת עייפות',
+  ].filter(Boolean);
+
+  const safetyTech = [
+    vehicle.hasLaneDeparture      && 'התראת יציאת נתיב',
+    vehicle.hasForwardWarning     && 'התראת מרחק קדמי',
+    vehicle.hasBlindSpot          && 'זיהוי שטח סמוי',
+    vehicle.hasAdaptiveCruise     && 'שיוט אדפטיבי',
+    vehicle.hasPedestrianDetect   && 'זיהוי הולכי רגל',
+    vehicle.hasAutoEmergencyBrake && 'בלימת חירום אוטומטית',
+    vehicle.hasAutoHighBeam       && 'שליטה אוטומטית באורות גבוהים',
+    vehicle.hasSpeedLimiter       && 'מגביל מהירות',
+    vehicle.hasAlcoLock           && 'נעילת אלכוהול',
+  ].filter(Boolean);
+
+  return (
+    <div className="space-y-4">
+
+      {/* ── Recalls ─────────────────────────────── */}
+      {recalls.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
+          <p className="font-bold text-red-600 dark:text-red-400 mb-3">⚠️ קריאות שירות פתוחות ({recalls.length})</p>
+          {recalls.map((rc, i) => (
+            <div key={i} className="text-sm border-t border-red-100 dark:border-red-800 pt-2 mt-2 first:border-0 first:pt-0 first:mt-0">
+              <p className="font-semibold text-red-700 dark:text-red-300">{rc.system}</p>
+              <p className="text-red-600 dark:text-red-400 text-xs mt-0.5">{rc.description}</p>
+              {rc.openedDate && <p className="text-red-400 text-xs mt-0.5 opacity-70">נפתח: {rc.openedDate}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Change alerts ────────────────────────── */}
+      {(vehicle.structureChange || vehicle.colorChange || vehicle.tireChange || vehicle.hasGrapam) && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
+          <p className="font-bold text-amber-700 dark:text-amber-400 mb-2">שינויים שדווחו</p>
+          <div className="flex flex-wrap gap-2">
+            {vehicle.structureChange && <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-1 rounded-lg">שינוי מבנה</span>}
+            {vehicle.colorChange     && <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-1 rounded-lg">שינוי צבע</span>}
+            {vehicle.tireChange      && <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-1 rounded-lg">שינוי צמיגים</span>}
+            {vehicle.hasGrapam       && <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2 py-1 rounded-lg">גרפ"מ</span>}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* ── Basic info ───────────────────────────── */}
+      <DSection title="פרטי רכב">
+        <DField label="מספר רכב"    value={vehicle.licensePlate} />
+        <DField label="יצרן"         value={vehicle.manufacturer} />
+        <DField label="כינוי מסחרי"  value={vehicle.model} />
+        <DField label="קוד דגם"      value={vehicle.modelCode} />
+        <DField label="שנת ייצור"    value={vehicle.year} />
+        <DField label="סוג רכב"      value={vehicle.vehicleType === 'P' ? 'פרטי' : vehicle.vehicleType === 'M' ? 'מסחרי' : vehicle.vehicleType} />
+        <DField label="צבע"           value={vehicle.color} />
+        <DField label="דלק"           value={vehicle.fuelType} />
+        <DField label="דגם מנוע"     value={vehicle.engineModel} />
+        <DField label="מספר מנוע"    value={vehicle.engineNumber} />
+        <DField label="גימור"         value={vehicle.trim} />
+        <DField label="מספר שלדה"    value={vehicle.vin} />
+        <DField label="צמיג קדמי"    value={vehicle.frontTire} />
+        <DField label="צמיג אחורי"   value={vehicle.rearTire} />
+        <DField label="עלייה לכביש"  value={vehicle.firstRegistered} />
+        <DField label="רישום ראשון"  value={vehicle.firstRegisteredDate?.split('T')[0]} />
+        <DField label="בעלות"         value={vehicle.ownership} />
+        <DField label="טסט אחרון"    value={vehicle.lastTest?.toString().split('T')[0]} />
+        <DField label="תוקף רישוי"   value={vehicle.testExpiry?.toString().split('T')[0]} />
+        <DField label="מקוריות"       value={vehicle.origin} />
+        <DField label="רמת זיהום"    value={vehicle.pollutionLevel ? `קבוצה ${vehicle.pollutionLevel}` : null} />
+        <DField label="דירוג בטיחות" value={vehicle.safetyRating} />
+        <DField label="הערת רישום"   value={vehicle.registrationNote} />
+      </DSection>
+
+      {/* ── Test KM ──────────────────────────────── */}
+      {vehicle.testKm > 0 && (
+        <div className="card p-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-2">ק"מ בטסט האחרון</p>
+          <p className="text-3xl font-black text-brand-600 mt-1">
+            {vehicle.testKm.toLocaleString('he-IL')}
+            <span className="text-sm font-normal text-surface-400 mr-1"> ק"מ</span>
+          </p>
+          <p className="text-xs text-surface-400 mt-1">נרשם ע"י מכון הרישוי בבדיקה האחרונה</p>
+        </div>
+      )}
+
+      {/* ── Specs ────────────────────────────────── */}
+      {(vehicle.horsePower || vehicle.engineCC || vehicle.bodyType || vehicle.seats) && (
+        <DSection title="מפרט טכני">
+          <DField label="כוח סוס"       value={vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : null} />
+          <DField label="נפח מנוע"      value={vehicle.engineCC   ? `${vehicle.engineCC} סמ"ק` : null} />
+          <DField label="משקל כולל"     value={vehicle.weight     ? `${vehicle.weight} ק"ג` : null} />
+          <DField label="סוג מרכב"      value={vehicle.bodyType} />
+          <DField label="הנעה"           value={vehicle.driveType} />
+          <DField label="תיבת הילוכים"  value={vehicle.transmission} />
+          <DField label="דלתות"          value={vehicle.doors} />
+          <DField label="מושבים"         value={vehicle.seats} />
+          <DField label="תקן"            value={vehicle.standardType} />
+          <DField label="גרירה עם בלמים"  value={vehicle.towingWithBrakes    ? `${vehicle.towingWithBrakes} ק"ג`    : null} />
+          <DField label="גרירה ללא בלמים" value={vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : null} />
+          <DField label="כריות אוויר"    value={vehicle.airbags} />
+          <DField label="חלונות חשמל"    value={vehicle.electricWindows} />
+        </DSection>
+      )}
+
+      {/* ── Emissions ────────────────────────────── */}
+      {(vehicle.co2 || vehicle.nox || vehicle.greenScore) && (
+        <DSection title="פליטות וסביבה">
+          <DField label="CO₂ כללי"       value={vehicle.co2        ? `${vehicle.co2} גר/ק"מ`    : null} />
+          <DField label="CO₂ עיר"        value={vehicle.co2City    ? `${vehicle.co2City} גר/ק"מ` : null} />
+          <DField label="CO₂ כביש מהיר"  value={vehicle.co2Highway ? `${vehicle.co2Highway} גר/ק"מ` : null} />
+          <DField label="NOx"             value={vehicle.nox        ? `${vehicle.nox} גר/ק"מ`    : null} />
+          <DField label="CO"              value={vehicle.co         ? `${vehicle.co} גר/ק"מ`     : null} />
+          <DField label="מדד ירוק"       value={vehicle.greenScore} />
+          <DField label="רמת זיהום"      value={vehicle.pollutionLevel ? `קבוצה ${vehicle.pollutionLevel}` : null} />
+        </DSection>
+      )}
+
+      {/* ── Equipment & Safety ───────────────────── */}
+      {safetyFeatures.length > 0 && (
+        <div className="card p-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">ציוד ואבזור</p>
+          <div className="flex flex-wrap gap-2">
+            {safetyFeatures.map(f => (
+              <span key={f} className="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 px-2.5 py-1 rounded-lg">{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Active Safety Tech ───────────────────── */}
+      {safetyTech.length > 0 && (
+        <div className="card p-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">מערכות בטיחות אקטיביות</p>
+          <div className="flex flex-wrap gap-2">
+            {safetyTech.map(f => (
+              <span key={f} className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Ownership history ────────────────────── */}
+      {ownershipHistory.length > 0 && (
+        <div className="card p-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">היסטוריית בעלות ({ownershipHistory.length} רשומות)</p>
+          <div className="space-y-0">
+            {ownershipHistory.map((o, i) => (
+              <div key={i} className="flex items-center justify-between py-2.5 border-b border-surface-100 dark:border-surface-700 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />
+                  <span className="text-sm font-medium">{o.type}</span>
+                </div>
+                <span className="text-xs text-surface-400 font-mono">{fmtDate(o.date)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
