@@ -298,3 +298,88 @@ export function buildNewVehicleEmailHtml({ userName, vehicle }) {
     </html>
   `;
 }
+
+// ─── ביטוח: הוספה ────────────────────────────────────────────────────────────
+export function buildNewInsuranceEmailHtml({ userName, insurance, vehicle }) {
+  const typeLabel = { MANDATORY: 'חובה', THIRD_PARTY: 'צד ג\'', COMPREHENSIVE: 'מקיף' };
+  const fmt = d => new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+  const rows = [
+    ['סוג ביטוח',   typeLabel[insurance.insuranceType]],
+    ['חברת ביטוח',  insurance.company],
+    insurance.policyNumber && ['מספר פוליסה', insurance.policyNumber],
+    ['תחילת כיסוי', fmt(insurance.startDate)],
+    ['סיום כיסוי',  fmt(insurance.endDate)],
+    insurance.cost && ['פרמיה שנתית', `₪${Number(insurance.cost).toLocaleString('he-IL')}`],
+    insurance.notes && ['הערות', insurance.notes],
+  ].filter(Boolean);
+  const rowsHtml = rows.map(([l,v]) => `<tr><td style="padding:9px 16px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;">${l}</td><td style="padding:9px 16px;border-bottom:1px solid #f1f5f9;color:#1e293b;font-size:14px;font-weight:500;">${v}</td></tr>`).join('');
+  return _insuranceEmail({ title:'ביטוח חדש נוסף', icon:'🛡️', userName, vehicle, rowsHtml, banner:null });
+}
+
+// ─── ביטוח: 30 יום ───────────────────────────────────────────────────────────
+export function buildInsuranceExpiryEmailHtml({ userName, insurance, vehicle, daysLeft }) {
+  const typeLabel = { MANDATORY: 'חובה', THIRD_PARTY: 'צד ג\'', COMPREHENSIVE: 'מקיף' };
+  const fmt = d => new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+  const urgent = daysLeft <= 7;
+  const banner = `<div style="margin-bottom:20px;background:${urgent?'#fef2f2':'#fffbeb'};border:1px solid ${urgent?'#fecaca':'#fde68a'};border-radius:10px;padding:14px 18px;"><p style="margin:0;color:${urgent?'#991b1b':'#92400e'};font-size:14px;">${urgent?'⚠️':'📅'} <strong>הביטוח פג תוקף בעוד ${daysLeft} ימים</strong> — יש לחדש בהקדם</p></div>`;
+  const rows = [
+    ['סוג ביטוח',  typeLabel[insurance.insuranceType]],
+    ['חברת ביטוח', insurance.company],
+    insurance.policyNumber && ['מספר פוליסה', insurance.policyNumber],
+    ['תאריך פקיעה', fmt(insurance.endDate)],
+  ].filter(Boolean);
+  const rowsHtml = rows.map(([l,v]) => `<tr><td style="padding:9px 16px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;">${l}</td><td style="padding:9px 16px;border-bottom:1px solid #f1f5f9;color:#1e293b;font-size:14px;font-weight:500;">${v}</td></tr>`).join('');
+  return _insuranceEmail({ title:`ביטוח פג בעוד ${daysLeft} ימים`, icon: urgent?'⚠️':'🛡️', userName, vehicle, rowsHtml, banner });
+}
+
+// ─── ריקול ────────────────────────────────────────────────────────────────────
+export function buildRecallAlertEmailHtml({ userName, vehicle, recalls }) {
+  const recallsHtml = recalls.map(rc => `
+    <div style="border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:12px;background:#fef2f2;">
+      <p style="margin:0 0 6px;font-weight:700;color:#991b1b;">${rc.system}</p>
+      <p style="margin:0 0 4px;color:#7f1d1d;font-size:13px;">${rc.description}</p>
+      ${rc.openedDate ? `<p style="margin:0;color:#b91c1c;font-size:12px;">נפתח: ${rc.openedDate}</p>` : ''}
+    </div>`).join('');
+  return `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"/></head>
+    <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;direction:rtl;">
+    <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:28px 32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">התראת ריקול</h1>
+        <p style="margin:6px 0 0;color:#fecaca;font-size:14px;">${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}</p>
+      </div>
+      <div style="padding:28px 32px;">
+        <p style="color:#374151;margin:0 0 16px;">שלום ${userName || ''},</p>
+        <p style="color:#374151;margin:0 0 20px;">נמצאו <strong>${recalls.length}</strong> קריאות שירות פתוחות לרכב שלך:</p>
+        ${recallsHtml}
+        <div style="text-align:center;margin-top:24px;">
+          <a href="${process.env.FRONTEND_URL||'https://car-service-tracker.up.railway.app'}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">פתח את האפליקציה</a>
+        </div>
+      </div>
+      <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;"><p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker</p></div>
+    </div></body></html>`;
+}
+
+// ─── helper פנימי ─────────────────────────────────────────────────────────────
+function _insuranceEmail({ title, icon, userName, vehicle, rowsHtml, banner }) {
+  return `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"/></head>
+    <body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;direction:rtl;">
+    <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);padding:28px 32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">${icon}</div>
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">${title}</h1>
+        <p style="margin:6px 0 0;color:#c7d2fe;font-size:14px;">${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}</p>
+      </div>
+      <div style="padding:28px 32px;">
+        <p style="color:#374151;margin:0 0 20px;">שלום ${userName || ''},</p>
+        ${banner || ''}
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div style="text-align:center;margin-top:24px;">
+          <a href="${process.env.FRONTEND_URL||'https://car-service-tracker.up.railway.app'}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">פתח את האפליקציה</a>
+        </div>
+      </div>
+      <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;"><p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker</p></div>
+    </div></body></html>`;
+}
