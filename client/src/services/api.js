@@ -12,7 +12,11 @@ async function request(url, options = {}) {
   }
 
   const response = await fetch(`${API_BASE}${url}`, config);
-  const data = await response.json();
+
+  const contentType = response.headers.get('content-type');
+  const data = contentType && contentType.includes('application/json')
+    ? await response.json()
+    : {};
 
   if (!response.ok) {
     throw new Error(data.error || 'אירעה שגיאה, נסה שוב');

@@ -17,6 +17,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
 import insuranceRoutes from './routes/insurances.js';
 import { startReminderCron } from './services/reminderCron.js';
+import prisma from './utils/prisma.js';
 
 dotenv.config();
 

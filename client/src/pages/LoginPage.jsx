@@ -11,8 +11,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [needsVerify, setNeedsVerify] = useState(false);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -21,12 +19,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      if (err.needsVerification) {
-        setNeedsVerify(true);
-        setError('המייל שלך לא אומת עדיין. שלחנו קוד חדש לתיבת הדואר שלך.');
-      } else {
-        setError(err.message || 'שגיאה בהתחברות');
-      }
+      setError(err.message || 'שגיאה בהתחברות');
     } finally {
       setLoading(false);
     }
@@ -47,13 +40,8 @@ export default function LoginPage() {
           <h2 className="text-xl font-bold mb-6 text-center">התחברות</h2>
 
           {error && (
-            <div className={`p-3 rounded-xl text-sm mb-4 ${needsVerify ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+            <div className="p-3 rounded-xl text-sm mb-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
               {error}
-              {needsVerify && (
-                <Link to="/register" className="block mt-2 font-medium underline">
-                  לחץ כאן להזנת קוד האימות
-                </Link>
-              )}
             </div>
           )}
 
