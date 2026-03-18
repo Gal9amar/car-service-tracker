@@ -74,7 +74,8 @@ app.get('/api/health', (req, res) => {
 // SERVE FRONTEND IN PRODUCTION
 // ============================================
 if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../../client/dist');
+  const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
+  console.log(`📁 Serving static files from: ${clientDist}`);
   app.use(express.static(clientDist));
   app.get('*', (req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
