@@ -144,7 +144,13 @@ function VehicleCard({ vehicle, onEdit, onDelete }) {
       {/* Top: make/model + action buttons */}
       <div className="flex items-center justify-between mb-4">
         <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">🚗</div>
+          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 overflow-hidden shrink-0">
+            {vehicle.imageUrl ? (
+              <img src={vehicle.imageUrl} alt={`${vehicle.manufacturer} ${vehicle.model}`} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl">🚗</div>
+            )}
+          </div>
           <div className="min-w-0">
             <p className="font-bold text-surface-900 dark:text-white leading-tight truncate">
               {vehicle.manufacturer} {vehicle.model}
