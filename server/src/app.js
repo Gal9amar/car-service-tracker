@@ -31,13 +31,17 @@ const PORT = process.env.PORT || 3000;
 // MIDDLEWARE
 // ============================================
 app.use(helmet({ contentSecurityPolicy: false }));
-const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL]
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL].filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'];
 
 app.use(cors({
   origin: (origin, callback) => {
+    // allow same-origin requests (no origin header) and allowed origins
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // in production, also allow the railway domain automatically
+    if (process.env.NODE_ENV === 'production') return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
