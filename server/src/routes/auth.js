@@ -111,4 +111,35 @@ router.put('/me', authenticate, async (req, res, next) => {
   }
 });
 
+// ============================================
+// PUT /api/auth/password
+// ============================================
+router.put('/password', authenticate, async (req, res, next) => {
+  try {
+    const schema = z.object({
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(6, 'הסיסמה החדשה חייבת להכיל לפחות 6 תווים'),
+    });
+
+    const { currentPassword, newPassword } = schema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user.passwordHash) {
+      return res.status(400).json({ error: 'לא ניתן לשנות סיסמה לחשבון Google.' });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'הסיסמה הנוכחית שגויה.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash } });
+
+    res.json({ message: 'הסיסמה עודכנה בהצלחה.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -28,8 +28,8 @@ async function request(url, options = {}) {
 // Auth
 export const auth = {
   register: (data) => request('/auth/register', { method: 'POST', body: data }),
-  verify: (data) => request('/auth/verify', { method: 'POST', body: data }),
   login: (data) => request('/auth/login', { method: 'POST', body: data }),
+  changePassword: (data) => request('/auth/password', { method: 'PUT', body: data }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   update: (data) => request('/auth/me', { method: 'PUT', body: data }),
@@ -44,6 +44,16 @@ export const vehicles = {
   delete: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   lookup: (plate) => request(`/vehicles/lookup/${plate}`),
   refresh: (id) => request(`/vehicles/${id}/refresh`, { method: 'POST' }),
+  uploadImage: (id, file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return fetch(`${API_BASE}/vehicles/${id}/image`, { method: 'POST', credentials: 'include', body: formData })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'שגיאה בהעלאת תמונה');
+        return data;
+      });
+  },
 };
 
 // Services
