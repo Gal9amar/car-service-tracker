@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { vehicles } from '../services/api';
-import { Search, Car, Check, Loader2, AlertTriangle, ShieldAlert, Camera, X } from 'lucide-react';
+import { Search, Car, Check, Loader2, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 export default function AddVehiclePage() {
   const navigate = useNavigate();
@@ -12,9 +12,6 @@ export default function AddVehiclePage() {
   const [saving, setSaving] = useState(false);
   const [nickname, setNickname] = useState('');
   const [mileage, setMileage] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const imageInputRef = useRef(null);
 
   const handleLookup = async (e) => {
     e.preventDefault();
@@ -31,13 +28,6 @@ export default function AddVehiclePage() {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -47,9 +37,6 @@ export default function AddVehiclePage() {
       delete data.recalls;
       delete data.wltp;
       const res = await vehicles.create(data);
-      if (imageFile) {
-        await vehicles.uploadImage(res.vehicle.id, imageFile);
-      }
       navigate(`/vehicles/${res.vehicle.id}`);
     } catch (err) {
       setLookupError(err.message || 'שגיאה בשמירה');
@@ -208,26 +195,6 @@ export default function AddVehiclePage() {
               </div>
             </div>
 
-            {/* Image upload */}
-            <div>
-              <label className="label">תמונת רכב</label>
-              <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageChange} />
-              {imagePreview ? (
-                <div className="relative w-full h-40 rounded-xl overflow-hidden">
-                  <img src={imagePreview} alt="תצוגה מקדימה" className="w-full h-full object-cover" />
-                  <button onClick={() => { setImageFile(null); setImagePreview(null); }}
-                    className="absolute top-2 left-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors">
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => imageInputRef.current.click()}
-                  className="w-full h-32 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl flex flex-col items-center justify-center gap-2 text-surface-400 hover:border-brand-400 hover:text-brand-500 transition-colors">
-                  <Camera size={24} />
-                  <span className="text-sm">לחץ להוספת תמונה</span>
-                </button>
-              )}
-            </div>
           </div>
 
           <div className="flex gap-3 justify-end pb-4">

@@ -4,7 +4,6 @@ import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { lookupVehicle } from '../services/vehicleLookup.js';
 import { sendEmail, buildNewVehicleEmailHtml } from '../services/emailService.js';
-import { uploadImage } from '../middleware/upload.js';
 
 const router = Router();
 router.use(authenticate);
@@ -391,18 +390,6 @@ router.post('/:id/refresh', async (req, res, next) => {
   }
 });
 
-// POST /api/vehicles/:id/image
-router.post('/:id/image', uploadImage.single('image'), async (req, res, next) => {
-  try {
-    const existing = await prisma.vehicle.findFirst({ where: { id: req.params.id, userId: req.user.id } });
-    if (!existing) return res.status(404).json({ error: 'Vehicle not found.' });
-    if (!req.file) return res.status(400).json({ error: 'לא נבחר קובץ.' });
-
-    const imageUrl = `/uploads/${req.file.filename}`;
-    const vehicle = await prisma.vehicle.update({ where: { id: req.params.id }, data: { imageUrl } });
-    res.json({ imageUrl: vehicle.imageUrl });
-  } catch (err) { next(err); }
-});
 
 // DELETE /api/vehicles/:id
 router.delete('/:id', async (req, res, next) => {

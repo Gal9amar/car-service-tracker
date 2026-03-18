@@ -44,16 +44,6 @@ export const vehicles = {
   delete: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   lookup: (plate) => request(`/vehicles/lookup/${plate}`),
   refresh: (id) => request(`/vehicles/${id}/refresh`, { method: 'POST' }),
-  uploadImage: (id, file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    return fetch(`${API_BASE}/vehicles/${id}/image`, { method: 'POST', credentials: 'include', body: formData })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'שגיאה בהעלאת תמונה');
-        return data;
-      });
-  },
 };
 
 // Services
