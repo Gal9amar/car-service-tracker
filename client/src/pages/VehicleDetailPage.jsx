@@ -85,7 +85,7 @@ export default function VehicleDetailPage() {
         {/* Top row: emoji + name */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">
-            {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt="" className="w-full h-full rounded-2xl object-cover" /> : '🚗'}
+            🚗
           </div>
           <div>
             <h1 className="text-xl font-bold leading-tight">
