@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { vehicles as vehiclesApi } from '../services/api';
-import { Plus, ChevronLeft, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
+import { Plus, ChevronLeft, Pencil, Trash2, X, Check, Loader2, Camera } from 'lucide-react';
 import { formatDate } from '../utils/constants';
 
 function testStatus(testExpiry) {
@@ -218,7 +218,17 @@ function EditModal({ vehicle, onSave, onClose }) {
     nickname:       vehicle.nickname || '',
     currentMileage: vehicle.currentMileage || '',
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(vehicle.imageUrl || null);
   const [saving, setSaving] = useState(false);
+  const imageInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -227,6 +237,9 @@ function EditModal({ vehicle, onSave, onClose }) {
         nickname:       form.nickname || null,
         currentMileage: form.currentMileage ? Number(form.currentMileage) : null,
       });
+      if (imageFile) {
+        await vehiclesApi.uploadImage(vehicle.id, imageFile);
+      }
     } finally {
       setSaving(false);
     }
@@ -243,6 +256,31 @@ function EditModal({ vehicle, onSave, onClose }) {
         </div>
 
         <div className="p-5 space-y-4">
+          {/* Image upload */}
+          <div>
+            <label className="label">תמונת רכב</label>
+            <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageChange} />
+            {imagePreview ? (
+              <div className="relative w-full h-36 rounded-xl overflow-hidden">
+                <img src={imagePreview} alt="תמונת רכב" className="w-full h-full object-cover" />
+                <button onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  className="absolute top-2 left-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors">
+                  <X size={14} />
+                </button>
+                <button onClick={() => imageInputRef.current.click()}
+                  className="absolute bottom-2 left-2 bg-black/60 text-white rounded-lg px-2 py-1 text-xs flex items-center gap-1 hover:bg-black/80 transition-colors">
+                  <Camera size={12} /> החלף
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => imageInputRef.current.click()}
+                className="w-full h-28 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl flex flex-col items-center justify-center gap-2 text-surface-400 hover:border-brand-400 hover:text-brand-500 transition-colors">
+                <Camera size={22} />
+                <span className="text-sm">לחץ להוספת תמונה</span>
+              </button>
+            )}
+          </div>
+
           <div>
             <label className="label">כינוי</label>
             <input type="text" value={form.nickname} onChange={e => setForm({...form, nickname: e.target.value})}
