@@ -658,60 +658,69 @@ function DetailsTab({ vehicle, setVehicle }) {
       )}
 
       {/* ── Specs ────────────────────────────────── */}
-      {(vehicle.horsePower || vehicle.engineCC || vehicle.bodyType || vehicle.seats) && (
-        <DSection title="מפרט טכני">
-          <DField label="כוח סוס"       value={vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : null} />
-          <DField label="נפח מנוע"      value={vehicle.engineCC   ? `${vehicle.engineCC} סמ"ק` : null} />
-          <DField label="משקל כולל"     value={vehicle.weight     ? `${vehicle.weight} ק"ג` : null} />
-          <DField label="סוג מרכב"      value={vehicle.bodyType} />
-          <DField label="הנעה"           value={vehicle.driveType} />
-          <DField label="תיבת הילוכים"  value={vehicle.transmission} />
-          <DField label="דלתות"          value={vehicle.doors} />
-          <DField label="מושבים"         value={vehicle.seats} />
-          <DField label="תקן"            value={vehicle.standardType} />
-          <DField label="גרירה עם בלמים"  value={vehicle.towingWithBrakes    ? `${vehicle.towingWithBrakes} ק"ג`    : null} />
-          <DField label="גרירה ללא בלמים" value={vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : null} />
-          <DField label="כריות אוויר"    value={vehicle.airbags} />
-          <DField label="חלונות חשמל"    value={vehicle.electricWindows} />
-        </DSection>
-      )}
+      <DSection title="מפרט טכני">
+        <DField label="כוח סוס"       value={vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : '-'} />
+        <DField label="נפח מנוע"      value={vehicle.engineCC   ? `${vehicle.engineCC} סמ"ק` : '-'} />
+        <DField label="משקל כולל"     value={vehicle.weight     ? `${vehicle.weight} ק"ג` : '-'} />
+        <DField label="סוג מרכב"      value={vehicle.bodyType ?? '-'} />
+        <DField label="הנעה"           value={vehicle.driveType ?? '-'} />
+        <DField label="תיבת הילוכים"  value={vehicle.transmission ?? '-'} />
+        <DField label="דלתות"          value={vehicle.doors ?? '-'} />
+        <DField label="מושבים"         value={vehicle.seats ?? '-'} />
+        <DField label="תקן"            value={vehicle.standardType ?? '-'} />
+        <DField label="גרירה עם בלמים"  value={vehicle.towingWithBrakes    ? `${vehicle.towingWithBrakes} ק"ג`    : '-'} />
+        <DField label="גרירה ללא בלמים" value={vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : '-'} />
+        <DField label="כריות אוויר"    value={vehicle.airbags ?? '-'} />
+        <DField label="חלונות חשמל"    value={vehicle.electricWindows ?? '-'} />
+      </DSection>
 
       {/* ── Emissions ────────────────────────────── */}
-      {(vehicle.co2 || vehicle.nox || vehicle.greenScore) && (
-        <DSection title="פליטות וסביבה">
-          <DField label="CO₂ כללי"       value={vehicle.co2        ? `${vehicle.co2} גר/ק"מ`    : null} />
-          <DField label="CO₂ עיר"        value={vehicle.co2City    ? `${vehicle.co2City} גר/ק"מ` : null} />
-          <DField label="CO₂ כביש מהיר"  value={vehicle.co2Highway ? `${vehicle.co2Highway} גר/ק"מ` : null} />
-          <DField label="NOx"             value={vehicle.nox        ? `${vehicle.nox} גר/ק"מ`    : null} />
-          <DField label="CO"              value={vehicle.co         ? `${vehicle.co} גר/ק"מ`     : null} />
-          <DField label="מדד ירוק"       value={vehicle.greenScore} />
-          <DField label="רמת זיהום"      value={vehicle.pollutionLevel ? `קבוצה ${vehicle.pollutionLevel}` : null} />
-        </DSection>
-      )}
+      <DSection title="פליטות וסביבה">
+        <DField label="CO₂ כללי"       value={vehicle.co2        ? `${vehicle.co2} גר/ק"מ`       : '-'} />
+        <DField label="CO₂ עיר"        value={vehicle.co2City    ? `${vehicle.co2City} גר/ק"מ`    : '-'} />
+        <DField label="CO₂ כביש מהיר"  value={vehicle.co2Highway ? `${vehicle.co2Highway} גר/ק"מ` : '-'} />
+        <DField label="NOx"             value={vehicle.nox        ? `${vehicle.nox} גר/ק"מ`       : '-'} />
+        <DField label="CO"              value={vehicle.co         ? `${vehicle.co} גר/ק"מ`        : '-'} />
+        <DField label="מדד ירוק"       value={vehicle.greenScore ?? '-'} />
+        <DField label="רמת זיהום"      value={vehicle.pollutionLevel ? `קבוצה ${vehicle.pollutionLevel}` : '-'} />
+      </DSection>
 
       {/* ── Equipment & Safety ───────────────────── */}
-      {safetyFeatures.length > 0 && (
-        <div className="card p-5">
-          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">ציוד ואבזור</p>
-          <div className="flex flex-wrap gap-2">
-            {safetyFeatures.map(f => (
-              <span key={f} className="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 px-2.5 py-1 rounded-lg">{f}</span>
-            ))}
-          </div>
+      <div className="card p-5">
+        <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">ציוד ובטיחות</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          {[
+            ['ABS',                    vehicle.hasABS],
+            ['יציבות אקטיבית (ESC)',   vehicle.hasStabControl],
+            ['הגה כוח',                vehicle.hasPowerSteering],
+            ['מיזוג אוויר',            vehicle.hasAC],
+            ['גג שמש',                 vehicle.hasSunroof],
+            ['גלגלי סגסוגת',           vehicle.hasAlloyWheels],
+            ['ארגז גג',                vehicle.hasTrunkRack],
+            ['מצלמת אחור',             vehicle.hasRearCamera],
+            ['חיישני לחץ צמיגים',      vehicle.hasTirePressure],
+            ['התראת עייפות',           vehicle.hasFatigueAlert],
+            ['התראת יציאת נתיב',       vehicle.hasLaneDeparture],
+            ['התראת מרחק קדמי',        vehicle.hasForwardWarning],
+            ['זיהוי שטח סמוי',         vehicle.hasBlindSpot],
+            ['שיוט אדפטיבי',           vehicle.hasAdaptiveCruise],
+            ['זיהוי הולכי רגל',        vehicle.hasPedestrianDetect],
+            ['בלימת חירום אוטומטית',   vehicle.hasAutoEmergencyBrake],
+            ['שליטה אוטומטית באורות',  vehicle.hasAutoHighBeam],
+            ['מגביל מהירות',           vehicle.hasSpeedLimiter],
+            ['נעילת אלכוהול',          vehicle.hasAlcoLock],
+            ['שינוי מבנה',             vehicle.structureChange],
+            ['שינוי צבע',              vehicle.colorChange],
+            ['שינוי צמיגים',           vehicle.tireChange],
+            ['גרפ"מ',                 vehicle.hasGrapam],
+          ].map(([label, val]) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${val ? 'text-emerald-500' : 'text-red-400'}`}>{val ? '✓' : '✗'}</span>
+              <span className="text-sm text-surface-600 dark:text-surface-300">{label}</span>
+            </div>
+          ))}
         </div>
-      )}
-
-      {/* ── Active Safety Tech ───────────────────── */}
-      {safetyTech.length > 0 && (
-        <div className="card p-5">
-          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">מערכות בטיחות אקטיביות</p>
-          <div className="flex flex-wrap gap-2">
-            {safetyTech.map(f => (
-              <span key={f} className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">{f}</span>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* ── Ownership history ────────────────────── */}
       {ownershipHistory.length > 0 && (
