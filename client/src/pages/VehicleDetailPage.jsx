@@ -853,6 +853,72 @@ function MotTab({ vehicle, onRefresh }) {
         )}
       </div>
 
+
+      {/* ── פרטי הרכב ──────────────────────────── */}
+      <div className="card p-5">
+        <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">פרטי הרכב</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {[
+            ['יצרן',          vehicle.manufacturer],
+            ['דגם',           vehicle.model],
+            ['שנה',           vehicle.year],
+            ['גימור',         vehicle.trim],
+            ['צבע',           vehicle.color],
+            ['סוג דלק',       vehicle.fuelType],
+            ['מנוע',          vehicle.engineModel],
+            ['נפח מנוע',      vehicle.engineCC ? `${vehicle.engineCC} סמ"ק` : null],
+            ['כוח סוס',       vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : null],
+            ['תיבת הילוכים',  vehicle.transmission],
+            ['הנעה',          vehicle.driveType],
+            ['סוג מרכב',      vehicle.bodyType],
+            ['מספר דלתות',    vehicle.doors],
+            ['מספר מושבים',   vehicle.seats],
+            ['משקל',          vehicle.weight ? `${vehicle.weight} ק"ג` : null],
+            ['גרירה עם בלמים',vehicle.towingWithBrakes ? `${vehicle.towingWithBrakes} ק"ג` : null],
+            ['גרירה ללא בלמים',vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : null],
+            ['צמיג קדמי',     vehicle.frontTire],
+            ['צמיג אחורי',    vehicle.rearTire],
+            ['כריות אוויר',   vehicle.airbags ? `${vehicle.airbags}` : null],
+            ['חלונות חשמל',   vehicle.electricWindows ? `${vehicle.electricWindows}` : null],
+            ['מספר שלדה',     vehicle.vin],
+            ['בעלות',         vehicle.ownership],
+            ['מקור',          vehicle.origin],
+            ['סטנדרט',        vehicle.standardType],
+            ['ציון ירוק',     vehicle.greenScore],
+            ['רמת זיהום',     vehicle.pollutionLevel],
+            ['CO2',           vehicle.co2 ? `${vehicle.co2} גר/ק"מ` : null],
+            ['CO',            vehicle.co ? `${vehicle.co}` : null],
+            ['NOx',           vehicle.nox ? `${vehicle.nox}` : null],
+          ].filter(([,v]) => v !== null && v !== undefined && v !== '').map(([label, value]) => (
+            <div key={label}>
+              <p className="text-xs text-surface-400 mb-0.5">{label}</p>
+              <p className="font-medium text-sm">{value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── ציוד בטיחות ──────────────────────────── */}
+      {(safetyFeatures.length > 0 || safetyTech.length > 0) && (
+        <div className="card p-5">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-3">בטיחות וציוד</p>
+          {safetyFeatures.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {safetyFeatures.map(f => (
+                <span key={f} className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-1 rounded-full">✓ {f}</span>
+              ))}
+            </div>
+          )}
+          {safetyTech.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {safetyTech.map(f => (
+                <span key={f} className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-xs px-2.5 py-1 rounded-full">🛡 {f}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Refresh note */}
       <p className="text-xs text-surface-400 text-center">
         הנתונים מתעדכנים אוטומטית מרשות הרישוי בכל פעם שמרעננים את פרטי הרכב
