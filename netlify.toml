@@ -5,7 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**", "server/prisma/**"]
+  included_files = ["server/node_modules/.prisma/**", "server/node_modules/@prisma/client/**", "server/prisma/**"]
 
 [functions."api"]
   external_node_modules = ["@libsql/client"]
