@@ -143,11 +143,14 @@ export default function VehicleDetailPage() {
 
 // ─── Services Tab ────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 5;
+
 function ServicesTab({ vehicleId, services, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const emptyForm = { serviceType: 'PERIODIC', date: new Date().toISOString().split('T')[0], cost: '', mileage: '', nextServiceMileage: '', description: '' };
   const [form, setForm] = useState(emptyForm);
 
@@ -240,7 +243,7 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
 
       {services.length === 0 && !showForm ? (
         <EmptyState text="אין טיפולים רשומים" icon="🔧" action="הוסף טיפול ראשון" onAction={openAdd} />
-      ) : services.map(s => (
+      ) : services.slice(0, visibleCount).map(s => (
         <div key={s.id} className="card p-4 flex items-center gap-4">
           <span className="text-2xl">{SERVICE_TYPE_ICONS[s.serviceType] || '🔧'}</span>
           <div className="flex-1">
@@ -263,6 +266,12 @@ function ServicesTab({ vehicleId, services, onRefresh }) {
           </div>
         </div>
       ))}
+      {services.length > visibleCount && (
+        <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+          className="w-full py-2.5 text-sm text-brand-600 hover:text-brand-700 font-medium border border-dashed border-brand-300 rounded-xl hover:bg-brand-50 transition-colors">
+          טען עוד ({services.length - visibleCount} נותרו)
+        </button>
+      )}
     </div>
   );
 }
@@ -274,6 +283,7 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const emptyForm = { category: 'FUEL', date: new Date().toISOString().split('T')[0], amount: '', description: '' };
   const [form, setForm] = useState(emptyForm);
 
@@ -310,6 +320,18 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
   };
 
   const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const monthlyData = (() => {
+    const map = {};
+    expenses.forEach(e => {
+      const key = e.date ? e.date.slice(0, 7) : null;
+      if (!key) return;
+      map[key] = (map[key] || 0) + Number(e.amount);
+    });
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12);
+  })();
+
+  const maxVal = Math.max(...monthlyData.map(([, v]) => v), 1);
 
   return (
     <div className="space-y-3">
@@ -348,15 +370,44 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
       )}
 
       {expenses.length > 0 && (
-        <div className="card p-4 bg-brand-50 text-center">
-          <p className="text-sm text-surface-500">סה״כ הוצאות</p>
-          <p className="text-2xl font-bold text-brand-700">{formatCurrency(total)}</p>
+        <div className="card p-4">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide">הוצאות לפי חודש</p>
+            <div className="text-left">
+              <p className="text-xs text-surface-400">סה״כ</p>
+              <p className="text-lg font-bold text-brand-600">{formatCurrency(total)}</p>
+            </div>
+          </div>
+          {monthlyData.length > 1 && (
+            <div className="flex items-end gap-1 h-20 mt-2">
+              {monthlyData.map(([month, val]) => {
+                const heightPct = (val / maxVal) * 100;
+                const [yr, mo] = month.split('-');
+                return (
+                  <div key={month} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                    <div className="w-full flex items-end justify-center" style={{ height: '64px' }}>
+                      <div
+                        className="w-full rounded-t-md bg-brand-400 dark:bg-brand-500 hover:bg-brand-500 dark:hover:bg-brand-400 transition-all relative group"
+                        style={{ height: `${heightPct}%`, minHeight: '4px' }}
+                        title={`${formatCurrency(val)}`}
+                      >
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-surface-800 text-white text-xs px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
+                          {formatCurrency(val)}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-surface-400 truncate w-full text-center">{mo}/{yr.slice(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {expenses.length === 0 && !showForm ? (
         <EmptyState text="אין הוצאות רשומות" icon="💰" action="הוסף הוצאה ראשונה" onAction={openAdd} />
-      ) : expenses.map(e => (
+      ) : expenses.slice(0, visibleCount).map(e => (
         <div key={e.id} className="card p-4 flex items-center gap-4">
           <span className="text-2xl">{EXPENSE_CATEGORY_ICONS[e.category] || '📦'}</span>
           <div className="flex-1">
@@ -375,6 +426,12 @@ function ExpensesTab({ vehicleId, expenses, onRefresh }) {
           </div>
         </div>
       ))}
+      {expenses.length > visibleCount && (
+        <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+          className="w-full py-2.5 text-sm text-brand-600 hover:text-brand-700 font-medium border border-dashed border-brand-300 rounded-xl hover:bg-brand-50 transition-colors">
+          טען עוד ({expenses.length - visibleCount} נותרו)
+        </button>
+      )}
     </div>
   );
 }
@@ -521,16 +578,21 @@ function DSection({ title, children }) {
 
 function DetailsTab({ vehicle, setVehicle }) {
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshError, setRefreshError] = useState('');
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', msg: string }
+
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setRefreshError('');
     try {
       const res = await vehiclesApi.refresh(vehicle.id);
       setVehicle(prev => ({ ...prev, ...res.vehicle }));
+      showToast('success', 'נתוני הרכב עודכנו בהצלחה');
     } catch (err) {
-      setRefreshError(err.message || 'שגיאה בעדכון הנתונים');
+      showToast('error', err.message || 'שגיאה בעדכון הנתונים');
     } finally {
       setRefreshing(false);
     }
@@ -591,7 +653,16 @@ function DetailsTab({ vehicle, setVehicle }) {
           {refreshing ? 'מעדכן...' : 'רענן נתונים'}
         </button>
       </div>
-      {refreshError && <p className="text-xs text-red-500">{refreshError}</p>}
+      {toast && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium animate-fade-in ${
+          toast.type === 'success'
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+        }`}>
+          <span>{toast.type === 'success' ? '✓' : '✗'}</span>
+          {toast.msg}
+        </div>
+      )}
       {recalls.length > 0 && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
           <p className="font-bold text-red-600 dark:text-red-400 mb-3">⚠️ קריאות שירות פתוחות ({recalls.length})</p>

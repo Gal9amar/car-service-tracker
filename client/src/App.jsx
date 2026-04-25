@@ -9,6 +9,7 @@ import VehicleDetailPage from './pages/VehicleDetailPage';
 import AddVehiclePage from './pages/AddVehiclePage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -28,6 +29,18 @@ function GuestRoute({ children }) {
   return user ? <Navigate to="/dashboard" /> : children;
 }
 
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (!user) return <Navigate to="/login" />;
+  if (user.email !== 'ga9service@gmail.com') return <Navigate to="/dashboard" />;
+  return children;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -43,10 +56,10 @@ export default function App() {
         <Route path="vehicles/new" element={<AddVehiclePage />} />
         <Route path="vehicles/:id" element={<VehicleDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="admin" element={<AdminPage />} />
+        <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

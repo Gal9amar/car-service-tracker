@@ -209,9 +209,28 @@ async function checkInsuranceExpiry() {
 
     const daysLeft = Math.ceil((new Date(ins.endDate) - now) / (1000 * 60 * 60 * 24));
 
-    // שלח רק ב-30 ימים ובחזרה ב-7 ימים (throttle לפי יום)
-    const shouldSend = daysLeft <= 7 || daysLeft <= 30;
-    if (!shouldSend) continue;
+    // שלח רק בשתי נקודות: ~30 ימים לפני ו~7 ימים לפני
+    const inWindow30 = daysLeft <= 30 && daysLeft > 7;
+    const inWindow7  = daysLeft <= 7;
+    if (!inWindow30 && !inWindow7) continue;
+
+    // בדוק תזכורת קיימת כדי למנוע שליחה חוזרת באותו window
+    const existingReminder = await prisma.reminder.findFirst({
+      where: {
+        vehicleId:    ins.vehicleId,
+        reminderType: 'INSURANCE',
+        isActive:     true,
+        lastNotified: { gte: oneDayAgo },
+      },
+    });
+
+    // אם נשלח ב-24 שעות האחרונות באותו window — דלג
+    if (existingReminder) {
+      const notifiedDaysLeft = Math.ceil((new Date(ins.endDate) - new Date(existingReminder.lastNotified)) / (1000 * 60 * 60 * 24));
+      const wasIn7  = notifiedDaysLeft <= 7;
+      const wasIn30 = notifiedDaysLeft <= 30 && notifiedDaysLeft > 7;
+      if ((inWindow7 && wasIn7) || (inWindow30 && wasIn30)) continue;
+    }
 
     try {
       await sendEmail({
@@ -220,6 +239,12 @@ async function checkInsuranceExpiry() {
         html: buildInsuranceExpiryEmailHtml({ userName: user.name, insurance: ins, vehicle: ins.vehicle, daysLeft }),
       });
       console.log(`📧 Insurance expiry sent to ${user.email} (${daysLeft} days left)`);
+
+      // עדכן lastNotified בתזכורת הביטוח
+      await prisma.reminder.updateMany({
+        where: { vehicleId: ins.vehicleId, reminderType: 'INSURANCE', isActive: true },
+        data:  { lastNotified: new Date() },
+      });
     } catch (e) { console.error('Insurance expiry email failed:', e.message); }
   }
 }
@@ -255,7 +280,7 @@ async function checkTestExpiry30Days() {
           <p style="color:#374151;margin:0 0 16px;">שלום ${v.user.name || ''},</p>
           <p style="color:#374151;margin:0 0 20px;">תוקף הטסט השנתי לרכב שלך פג ב-<strong>${fmt(v.testExpiry)}</strong> — בעוד ${daysLeft} ימים.</p>
           <div style="text-align:center;margin-top:24px;">
-            <a href="${process.env.FRONTEND_URL||'https://car-service-tracker.up.railway.app'}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">פתח את האפליקציה</a>
+            <a href="${process.env.FRONTEND_URL||'https://carhistory1.netlify.app'}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">פתח את האפליקציה</a>
           </div>
         </div>
         <div style="padding:16px 32px;border-top:1px solid #f1f5f9;text-align:center;"><p style="color:#94a3b8;font-size:12px;margin:0;">Car Service Tracker</p></div>
