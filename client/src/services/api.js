@@ -44,6 +44,7 @@ export const vehicles = {
   delete: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   lookup: (plate) => request(`/vehicles/lookup/${plate}`),
   refresh: (id) => request(`/vehicles/${id}/refresh`, { method: 'POST' }),
+  refreshImage: (id) => request(`/vehicles/${id}/refresh-image`, { method: 'POST' }),
 };
 
 // Services

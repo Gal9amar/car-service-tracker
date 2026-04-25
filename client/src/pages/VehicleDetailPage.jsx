@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports, insurances as insurancesApi } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield, ClipboardCheck } from 'lucide-react';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield, ClipboardCheck, ImageOff } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 function VehiclePlate({ number }) {
@@ -46,12 +46,27 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState(null);
   const [tab, setTab] = useState('services');
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+  const [refreshingImg, setRefreshingImg] = useState(false);
 
   const fetchVehicle = useCallback(() => {
+    setImgError(false);
     vehiclesApi.get(id).then(res => setVehicle(res.vehicle)).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => { fetchVehicle(); }, [fetchVehicle]);
+
+  const handleRefreshImage = async () => {
+    setRefreshingImg(true);
+    try {
+      const res = await vehiclesApi.refreshImage(vehicle.id);
+      if (res.imageUrl) {
+        setVehicle(v => ({ ...v, imageUrl: res.imageUrl }));
+        setImgError(false);
+      }
+    } catch (e) { console.error(e); }
+    finally { setRefreshingImg(false); }
+  };
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
   if (!vehicle) return <p className="text-center text-surface-500">רכב לא נמצא</p>;
@@ -65,60 +80,170 @@ export default function VehicleDetailPage() {
     { id: 'details',    label: 'פרטים',    icon: FileText },
   ];
 
-  return (
-    <div className="space-y-5 fade-in" dir="rtl">
-      <Link to="/vehicles" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
-        <ArrowRight size={16} />חזרה לרכבים
-      </Link>
+  // Derive key info for summary cards
+  const lastService = vehicle.services?.[0];
+  const nextReminder = vehicle.reminders?.filter(r => r.isActive && r.dueDate && new Date(r.dueDate) > new Date())
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+  const activeInsurance = vehicle.insurances?.[0]; // may be undefined
 
-      {/* PDF button above header */}
-      <div className="flex justify-start">
+  const testExpiry = vehicle.testExpiry ? new Date(vehicle.testExpiry) : null;
+  const testDaysLeft = testExpiry ? Math.ceil((testExpiry - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const testColor = testDaysLeft === null ? 'gray'
+    : testDaysLeft < 0 ? 'red'
+    : testDaysLeft <= 14 ? 'red'
+    : testDaysLeft <= 60 ? 'amber'
+    : 'emerald';
+
+  const hasImage = vehicle.imageUrl && !imgError;
+
+  return (
+    <div className="space-y-4 fade-in" dir="rtl">
+
+      {/* ── Back + PDF row ───────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <Link to="/vehicles" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
+          <ArrowRight size={16} />חזרה לרכבים
+        </Link>
         <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
           className="flex items-center gap-1.5 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors text-surface-600 dark:text-surface-300 text-xs font-semibold px-3 py-2 rounded-xl">
           <FileText size={14} />דוח PDF
         </a>
       </div>
 
-      {/* Vehicle header card */}
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-slate-950 rounded-3xl p-5 text-white shadow-xl">
+      {/* ── Hero card ────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-lg overflow-hidden">
 
-        {/* Top row: emoji + name */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">
-            🚗
-          </div>
-          <div>
-            <h1 className="text-xl font-bold leading-tight">
-              {vehicle.manufacturer} {vehicle.model}
-            </h1>
-            {vehicle.nickname && <p className="text-sm text-white/50">{vehicle.nickname}</p>}
+        {/* Car image area */}
+        <div className="relative bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-700 dark:to-surface-800 h-52 flex items-center justify-center">
+          {hasImage ? (
+            <img
+              src={vehicle.imageUrl}
+              alt={`${vehicle.manufacturer} ${vehicle.model}`}
+              className="h-full w-full object-contain p-4 drop-shadow-lg"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-surface-300 dark:text-surface-600">
+              <span className="text-7xl">🚗</span>
+              <button
+                onClick={handleRefreshImage}
+                disabled={refreshingImg}
+                className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-600 font-medium bg-white dark:bg-surface-700 px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+              >
+                {refreshingImg
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : <ImageOff size={12} />}
+                {refreshingImg ? 'מחפש תמונה...' : 'חפש תמונה'}
+              </button>
+            </div>
+          )}
+
+          {/* Refresh image button — shown when image exists */}
+          {hasImage && (
+            <button
+              onClick={handleRefreshImage}
+              disabled={refreshingImg}
+              title="רענן תמונה"
+              className="absolute top-3 left-3 p-1.5 bg-white/80 dark:bg-surface-800/80 rounded-lg text-surface-400 hover:text-brand-500 transition-colors shadow-sm"
+            >
+              {refreshingImg ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            </button>
+          )}
+
+          {/* Recall badge */}
+          {vehicle.recalls?.length > 0 && (
+            <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+              ⚠️ ריקול
+            </div>
+          )}
+        </div>
+
+        {/* Name + plate */}
+        <div className="px-5 pt-4 pb-3 text-center border-b border-surface-100 dark:border-surface-700">
+          <h1 className="text-xl font-bold text-surface-900 dark:text-white">
+            {vehicle.manufacturer} {vehicle.model}
+            {vehicle.year && <span className="text-surface-400 font-normal text-base mr-1">· {vehicle.year}</span>}
+          </h1>
+          {vehicle.nickname && <p className="text-sm text-surface-400 mt-0.5">{vehicle.nickname}</p>}
+          <div className="flex justify-center mt-3">
+            <VehiclePlate number={vehicle.licensePlate} />
           </div>
         </div>
 
-        {/* Israeli plate */}
-        <div className="flex justify-center mb-5">
-          <VehiclePlate number={vehicle.licensePlate} />
-        </div>
+        {/* Summary info cards */}
+        <div className="grid grid-cols-3 divide-x divide-x-reverse divide-surface-100 dark:divide-surface-700">
 
-        {/* Info grid */}
-        <div className="grid grid-cols-3 gap-2">
-          <InfoTile label="שנת ייצור" value={vehicle.year} />
-          <InfoTile label="קילומטראז׳" value={vehicle.currentMileage ? formatNumber(vehicle.currentMileage) : '—'} />
-          <InfoTile
-            label="טסט"
-            value={vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
-            highlight={vehicle.testExpiry
-              ? new Date(vehicle.testExpiry) < new Date() ? 'red'
-              : new Date(vehicle.testExpiry) < new Date(Date.now() + 60*24*60*60*1000) ? 'amber'
-              : 'green'
-              : null}
-          />
-          {vehicle.fuelType && <InfoTile label="דלק" value={vehicle.fuelType} />}
-          {vehicle.color && <InfoTile label="צבע" value={vehicle.color} />}
-          {vehicle.engineModel && <InfoTile label="מנוע" value={vehicle.engineModel} />}
+          {/* Last service */}
+          <div className="p-4 text-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-2">
+              <Wrench size={18} className="text-blue-500" />
+            </div>
+            <p className="text-xs text-surface-400 mb-0.5">טיפול אחרון</p>
+            {lastService ? (
+              <>
+                <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 leading-tight">{SERVICE_TYPES[lastService.serviceType] || lastService.serviceType}</p>
+                <p className="text-xs text-surface-400">{formatDate(lastService.date)}</p>
+                {lastService.mileage && <p className="text-xs text-surface-400">לפני {formatNumber(vehicle.currentMileage - lastService.mileage)} ק״מ</p>}
+              </>
+            ) : (
+              <p className="text-xs text-surface-400">אין עדיין</p>
+            )}
+          </div>
+
+          {/* Test expiry */}
+          <div className="p-4 text-center">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 ${
+              testColor === 'red' ? 'bg-red-50 dark:bg-red-900/30' :
+              testColor === 'amber' ? 'bg-amber-50 dark:bg-amber-900/30' :
+              'bg-emerald-50 dark:bg-emerald-900/30'
+            }`}>
+              <ClipboardCheck size={18} className={
+                testColor === 'red' ? 'text-red-500' :
+                testColor === 'amber' ? 'text-amber-500' :
+                'text-emerald-500'
+              } />
+            </div>
+            <p className="text-xs text-surface-400 mb-0.5">תוקף טסט</p>
+            {testExpiry ? (
+              <>
+                <p className={`text-sm font-semibold leading-tight ${
+                  testColor === 'red' ? 'text-red-600' :
+                  testColor === 'amber' ? 'text-amber-600' :
+                  'text-emerald-600'
+                }`}>
+                  {testDaysLeft < 0 ? 'פג תוקף' : `${testDaysLeft} ימים`}
+                </p>
+                <p className="text-xs text-surface-400">{formatDate(testExpiry)}</p>
+              </>
+            ) : (
+              <p className="text-xs text-surface-400">לא ידוע</p>
+            )}
+          </div>
+
+          {/* Next reminder */}
+          <div className="p-4 text-center">
+            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-2">
+              <Bell size={18} className="text-orange-500" />
+            </div>
+            <p className="text-xs text-surface-400 mb-0.5">תזכורת הבאה</p>
+            {nextReminder ? (
+              <>
+                <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 leading-tight truncate px-1">{nextReminder.title}</p>
+                <p className="text-xs text-surface-400">{formatDate(nextReminder.dueDate)}</p>
+                {nextReminder.dueDate && (
+                  <p className="text-xs text-surface-400">
+                    בעוד {Math.ceil((new Date(nextReminder.dueDate) - new Date()) / (1000*60*60*24))} ימים
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-surface-400">אין תזכורות</p>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-surface-100 dark:bg-surface-800 rounded-xl p-1 overflow-x-auto scrollbar-hide">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -126,7 +251,7 @@ export default function VehicleDetailPage() {
               tab === t.id ? 'bg-white dark:bg-surface-700 shadow-sm text-brand-700 dark:text-brand-400' : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'}`}>
             <t.icon size={15} />
             <span>{t.label}</span>
-            {t.count !== undefined && <span className="text-xs bg-surface-200 px-1 py-0.5 rounded-full leading-none">{t.count}</span>}
+            {t.count !== undefined && <span className="text-xs bg-surface-200 dark:bg-surface-600 px-1 py-0.5 rounded-full leading-none">{t.count}</span>}
           </button>
         ))}
       </div>

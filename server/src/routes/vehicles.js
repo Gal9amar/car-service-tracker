@@ -4,6 +4,7 @@ import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { lookupVehicle } from '../services/vehicleLookup.js';
 import { sendEmail, buildNewVehicleEmailHtml } from '../services/emailService.js';
+import { fetchCarImage } from '../services/carImageService.js';
 
 const router = Router();
 router.use(authenticate);
@@ -220,6 +221,13 @@ router.post('/', async (req, res, next) => {
       },
     });
 
+    // Fetch car image from Wikipedia in background (non-blocking)
+    fetchCarImage(d.manufacturer, d.model).then(async (imgUrl) => {
+      if (imgUrl) {
+        await prisma.vehicle.update({ where: { id: vehicle.id }, data: { imageUrl: imgUrl } }).catch(() => {});
+      }
+    }).catch(() => {});
+
     if (vehicle.testExpiry) {
       await prisma.reminder.create({
         data: { vehicleId: vehicle.id, reminderType: 'TEST', title: 'טסט שנתי', dueDate: vehicle.testExpiry, intervalMonths: 12 },
@@ -390,6 +398,20 @@ router.post('/:id/refresh', async (req, res, next) => {
   }
 });
 
+
+// POST /api/vehicles/:id/refresh-image — fetch/re-fetch car image from Wikipedia
+router.post('/:id/refresh-image', async (req, res, next) => {
+  try {
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
+
+    const imgUrl = await fetchCarImage(vehicle.manufacturer, vehicle.model);
+    if (!imgUrl) return res.json({ imageUrl: null, found: false });
+
+    await prisma.vehicle.update({ where: { id: req.params.id }, data: { imageUrl: imgUrl } });
+    res.json({ imageUrl: imgUrl, found: true });
+  } catch (err) { next(err); }
+});
 
 // DELETE /api/vehicles/:id
 router.delete('/:id', async (req, res, next) => {
