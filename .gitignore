@@ -12,3 +12,8 @@ uploads/
 *.cert
 client/package-lock.json
 package-lock.json
+*.db
+*.db-wal
+*.db-shm
+auth
+auth-wal
