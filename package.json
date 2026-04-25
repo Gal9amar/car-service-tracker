@@ -12,6 +12,9 @@
     "db:studio": "cd server && npx prisma studio",
     "postinstall": "cd server && npm install && cd ../client && npm install"
   },
+  "dependencies": {
+    "@netlify/functions": "^2.8.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

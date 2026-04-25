@@ -92,13 +92,15 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorHandler);
 
 // ============================================
-// START SERVER
+// START SERVER (local dev only)
 // ============================================
-app.listen(PORT, async () => {
-  console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
-  startReminderCron();
-  await createMissingInsuranceReminders();
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, async () => {
+    console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
+    startReminderCron();
+    await createMissingInsuranceReminders();
+  });
+}
 
 // ── חד-פעמי: יצירת תזכורות לביטוחים קיימים ללא תזכורת ────────────────────
 async function createMissingInsuranceReminders() {

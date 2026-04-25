@@ -1,10 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("TURSO_DATABASE_URL")
 }
 
 model User {
@@ -55,8 +56,8 @@ model Vehicle {
   vin              String?
   frontTire        String?  @map("front_tire")
   rearTire         String?  @map("rear_tire")
-  lastTest         DateTime? @map("last_test") @db.Date
-  testExpiry       DateTime? @map("test_expiry") @db.Date
+  lastTest         DateTime? @map("last_test")
+  testExpiry       DateTime? @map("test_expiry")
   ownership        String?
   registrationNote String?  @map("registration_note")
   firstRegistered  String?  @map("first_registered")
@@ -132,21 +133,15 @@ model Vehicle {
 }
 
 // ── INSURANCE ─────────────────────────────────────────────────────────────────
-enum InsuranceType {
-  MANDATORY   // חובה
-  THIRD_PARTY // צד ג
-  COMPREHENSIVE // מקיף
-}
-
 model Insurance {
-  id            String        @id @default(uuid())
-  vehicleId     String        @map("vehicle_id")
-  insuranceType InsuranceType @map("insurance_type")
+  id            String   @id @default(uuid())
+  vehicleId     String   @map("vehicle_id")
+  insuranceType String   @map("insurance_type")
   company       String
   policyNumber  String?       @map("policy_number")
-  startDate     DateTime      @map("start_date") @db.Date
-  endDate       DateTime      @map("end_date")   @db.Date
-  cost          Decimal?      @db.Decimal(10, 2)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  cost          Float?
   notes         String?
   isActive      Boolean       @default(true) @map("is_active")
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -156,32 +151,16 @@ model Insurance {
   @@map("insurances")
 }
 
-enum ServiceType {
-  PERIODIC
-  OIL
-  BRAKES
-  TIRES
-  BATTERY
-  AC
-  TIMING_BELT
-  FILTERS
-  SUSPENSION
-  ELECTRICAL
-  BODY_WORK
-  GENERAL
-  OTHER
-}
-
 model Service {
-  id                 String      @id @default(uuid())
-  vehicleId          String      @map("vehicle_id")
-  serviceType        ServiceType @map("service_type")
+  id                 String   @id @default(uuid())
+  vehicleId          String   @map("vehicle_id")
+  serviceType        String   @map("service_type")
   description        String?
-  date               DateTime    @db.Date
+  date               DateTime
   mileage            Int?
-  cost               Decimal     @db.Decimal(10, 2)
+  cost               Float
   garageId           String?     @map("garage_id")
-  warrantyUntil      DateTime?   @map("warranty_until") @db.Date
+  warrantyUntil      DateTime?   @map("warranty_until")
   nextServiceMileage Int?        @map("next_service_mileage")
   createdAt          DateTime    @default(now()) @map("created_at")
 
@@ -205,24 +184,12 @@ model ServiceAttachment {
   @@map("service_attachments")
 }
 
-enum ExpenseCategory {
-  FUEL
-  PARKING
-  FINE
-  INSURANCE
-  LICENSE
-  TOLL
-  WASH
-  ACCESSORIES
-  OTHER
-}
-
 model Expense {
-  id          String          @id @default(uuid())
-  vehicleId   String          @map("vehicle_id")
-  category    ExpenseCategory
-  amount      Decimal         @db.Decimal(10, 2)
-  date        DateTime        @db.Date
+  id          String   @id @default(uuid())
+  vehicleId   String   @map("vehicle_id")
+  category    String
+  amount      Float
+  date        DateTime
   description String?
   createdAt   DateTime        @default(now()) @map("created_at")
 
@@ -231,22 +198,12 @@ model Expense {
   @@map("expenses")
 }
 
-enum ReminderType {
-  TEST
-  OIL
-  INSURANCE
-  LICENSE
-  TIRES
-  BRAKES
-  CUSTOM
-}
-
 model Reminder {
-  id             String       @id @default(uuid())
-  vehicleId      String       @map("vehicle_id")
-  reminderType   ReminderType @map("reminder_type")
+  id             String   @id @default(uuid())
+  vehicleId      String   @map("vehicle_id")
+  reminderType   String   @map("reminder_type")
   title          String
-  dueDate        DateTime?    @map("due_date") @db.Date
+  dueDate        DateTime?    @map("due_date")
   dueMileage     Int?         @map("due_mileage")
   intervalMonths Int?         @map("interval_months")
   intervalKm     Int?         @map("interval_km")
@@ -267,7 +224,7 @@ model Garage {
   phone       String?
   lat         Float?
   lng         Float?
-  specialties String[] @default([])
+  specialties String   @default("[]")
   createdBy   String?  @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
 
