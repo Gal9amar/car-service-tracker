@@ -14,7 +14,6 @@ import reminderRoutes from './routes/reminders.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
 import insuranceRoutes from './routes/insurances.js';
-import { startReminderCron } from './services/reminderCron.js';
 import prisma from './utils/prisma.js';
 
 dotenv.config();
@@ -82,6 +81,7 @@ app.use(errorHandler);
 // START SERVER (local dev only)
 // ============================================
 if (process.env.NODE_ENV !== 'production') {
+  const { startReminderCron } = await import('./services/reminderCron.js');
   app.listen(PORT, async () => {
     console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
     startReminderCron();
