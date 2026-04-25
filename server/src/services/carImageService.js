@@ -14,6 +14,7 @@ const WIKIPEDIA_API = 'https://en.wikipedia.org/api/rest_v1/page/summary';
 const BAD_IMAGE_PATTERNS = [/logo/i, /flag/i, /coat.*arm/i, /emblem/i, /badge/i, /portrait/i, /headshot/i, /schematic/i, /diagram/i];
 
 // Hebrew manufacturer → English name used in Wikipedia/Commons
+// Includes variants with Israeli distributor suffixes (e.g. "יונדאי צ'כיה", "טויוטה מוטורס")
 const MFR_MAP = {
   'טויוטה':     'Toyota',
   'יונדאי':     'Hyundai',
@@ -205,10 +206,26 @@ const COLOR_MAP = {
  * @param {number} year         - e.g. 2011
  * @param {string} color        - Hebrew color (e.g. "לבן", "שחור") — optional
  */
+// Resolve manufacturer to English, handling distributor suffixes like "יונדאי צ'כיה"
+function resolveMfr(raw) {
+  if (!raw) return 'Unknown';
+  const trimmed = raw.trim();
+  // Exact match first
+  if (MFR_MAP[trimmed]) return MFR_MAP[trimmed];
+  // Try each word prefix: "יונדאי צ'כיה" → try "יונדאי"
+  const words = trimmed.split(/\s+/);
+  for (let i = words.length - 1; i >= 1; i--) {
+    const prefix = words.slice(0, i).join(' ');
+    if (MFR_MAP[prefix]) return MFR_MAP[prefix];
+  }
+  // Fall back to title-cased raw value
+  return toTitleCase(trimmed);
+}
+
 export async function fetchCarImage(manufacturer, model, year, color) {
   if (!manufacturer || !model) return null;
 
-  const mfrEn    = MFR_MAP[manufacturer?.trim()] || toTitleCase(manufacturer || '');
+  const mfrEn    = resolveMfr(manufacturer);
   const modelUp  = (model || '').trim().toUpperCase();
   const modelDsp = MODEL_DISPLAY[modelUp] || toTitleCase(model.trim());
   const colorEn  = color ? (COLOR_MAP[color.trim()] || null) : null;
