@@ -17,3 +17,6 @@ package-lock.json
 *.db-shm
 auth
 auth-wal
+
+# Local Netlify folder
+.netlify
