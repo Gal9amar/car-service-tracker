@@ -1,6 +1,7 @@
 {
   "name": "car-service-tracker",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
@@ -13,7 +14,8 @@
     "postinstall": "cd server && npm install && cd ../client && npm install"
   },
   "dependencies": {
-    "@netlify/functions": "^2.8.0"
+    "@netlify/functions": "^2.8.0",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

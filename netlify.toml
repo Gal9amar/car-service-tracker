@@ -7,6 +7,12 @@
   node_bundler = "esbuild"
   included_files = ["server/prisma/**"]
 
+[functions."api"]
+  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client"]
+
+[functions."cron-reminders"]
+  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client"]
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
