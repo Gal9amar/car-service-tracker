@@ -221,8 +221,8 @@ router.post('/', async (req, res, next) => {
       },
     });
 
-    // Fetch car image from Wikipedia in background (non-blocking)
-    fetchCarImage(d.manufacturer, d.model).then(async (imgUrl) => {
+    // Fetch car image from Wikimedia Commons in background (non-blocking)
+    fetchCarImage(d.manufacturer, d.model, d.year, d.color).then(async (imgUrl) => {
       if (imgUrl) {
         await prisma.vehicle.update({ where: { id: vehicle.id }, data: { imageUrl: imgUrl } }).catch(() => {});
       }
@@ -405,7 +405,7 @@ router.post('/:id/refresh-image', async (req, res, next) => {
     const vehicle = await prisma.vehicle.findFirst({ where: { id: req.params.id, userId: req.user.id } });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    const imgUrl = await fetchCarImage(vehicle.manufacturer, vehicle.model);
+    const imgUrl = await fetchCarImage(vehicle.manufacturer, vehicle.model, vehicle.year, vehicle.color);
     if (!imgUrl) return res.json({ imageUrl: null, found: false });
 
     await prisma.vehicle.update({ where: { id: req.params.id }, data: { imageUrl: imgUrl } });
