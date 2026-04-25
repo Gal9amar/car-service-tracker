@@ -11,13 +11,17 @@
     "db:migrate": "cd server && npx prisma migrate deploy",
     "db:push": "cd server && npx prisma db push",
     "db:studio": "cd server && npx prisma studio",
-    "postinstall": "cd server && npm install && cd ../client && npm install"
+    "postinstall": "cd server && npm install && cd ../client && npm install && cd .. && npx prisma generate --schema=server/prisma/schema.prisma"
   },
   "dependencies": {
     "@netlify/functions": "^2.8.0",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "@prisma/client": "^5.22.0",
+    "@prisma/adapter-libsql": "^5.22.0",
+    "@libsql/client": "^0.8.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "prisma": "^5.22.0"
   }
 }
