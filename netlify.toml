@@ -1,17 +1,20 @@
 [build]
-  command = "cd server && npm install && npx prisma generate && cd .. && npx prisma generate --schema=server/prisma/schema.prisma && cd client && npm install --include=dev && npm run build"
+  command = "cd server && npm install && npx prisma generate && cd ../client && npm install --include=dev && npm run build"
   publish = "client/dist"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_PATH = "/opt/build/repo/server/node_modules"
+
 [functions]
   node_bundler = "esbuild"
-  included_files = ["server/node_modules/.prisma/**", "server/node_modules/@prisma/client/**", "server/prisma/**"]
+  included_files = ["server/node_modules/.prisma/**", "server/node_modules/@prisma/client/**"]
 
 [functions."api"]
-  external_node_modules = ["@libsql/client"]
+  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client", "bcryptjs"]
 
 [functions."cron-reminders"]
-  external_node_modules = ["@libsql/client"]
+  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client"]
 
 [[redirects]]
   from = "/api/*"
