@@ -81,11 +81,12 @@ app.use(errorHandler);
 // START SERVER (local dev only)
 // ============================================
 if (process.env.NODE_ENV !== 'production') {
-  const { startReminderCron } = await import('./services/reminderCron.js');
-  app.listen(PORT, async () => {
-    console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
-    startReminderCron();
-    await createMissingInsuranceReminders();
+  import('./services/reminderCron.js').then(({ startReminderCron }) => {
+    app.listen(PORT, async () => {
+      console.log(`🚗 Car Service Tracker server running on port ${PORT}`);
+      startReminderCron();
+      await createMissingInsuranceReminders();
+    });
   });
 }
 
