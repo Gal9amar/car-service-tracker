@@ -8,6 +8,7 @@ import VehiclesPage from './pages/VehiclesPage';
 import VehicleDetailPage from './pages/VehicleDetailPage';
 import AddVehiclePage from './pages/AddVehiclePage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="vehicles/new" element={<AddVehiclePage />} />
         <Route path="vehicles/:id" element={<VehicleDetailPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

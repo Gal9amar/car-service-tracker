@@ -102,6 +102,11 @@ export const reports = {
   vehiclePdfUrl: (vehicleId) => `${API_BASE}/reports/vehicles/${vehicleId}/pdf`,
 };
 
+// Admin
+export const admin = {
+  users: () => request('/admin/users'),
+};
+
 // Insurances
 export const insurances = {
   list:   (vehicleId) => request(`/insurances?vehicleId=${vehicleId}`),

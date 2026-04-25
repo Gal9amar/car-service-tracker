@@ -1,6 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Car, PlusCircle, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Car, PlusCircle, Settings, LogOut, ShieldCheck } from 'lucide-react';
+
+const ADMIN_EMAIL = 'ga9service@gmail.com';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'דשבורד' },
@@ -26,8 +28,24 @@ export default function Layout() {
         <h1 className="font-display font-bold text-lg text-brand-700 dark:text-brand-400 flex items-center gap-2">
           🚗 מעקב טיפולים
         </h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-surface-700 dark:text-surface-200 truncate max-w-[120px]">
+        <div className="flex items-center gap-2">
+          {user?.email === ADMIN_EMAIL && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `p-2 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold ${
+                  isActive
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'text-amber-600 hover:bg-amber-50 dark:text-amber-500 dark:hover:bg-amber-900/20'
+                }`
+              }
+              title="פאנל מנהל"
+            >
+              <ShieldCheck size={17} />
+              <span className="hidden sm:inline">מנהל</span>
+            </NavLink>
+          )}
+          <span className="text-sm font-semibold text-surface-700 dark:text-surface-200 truncate max-w-[100px]">
             {user?.name}
           </span>
           <button

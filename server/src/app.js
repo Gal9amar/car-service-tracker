@@ -14,6 +14,7 @@ import reminderRoutes from './routes/reminders.js';
 import dashboardRoutes from './routes/dashboard.js';
 import reportRoutes from './routes/reports.js';
 import insuranceRoutes from './routes/insurances.js';
+import adminRoutes from './routes/admin.js';
 import prisma from './utils/prisma.js';
 
 dotenv.config();
@@ -64,6 +65,7 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/insurances', insuranceRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
