@@ -5,13 +5,13 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["server/prisma/**"]
+  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**", "server/prisma/**"]
 
 [functions."api"]
-  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client"]
+  external_node_modules = ["@libsql/client"]
 
 [functions."cron-reminders"]
-  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client"]
+  external_node_modules = ["@libsql/client"]
 
 [[redirects]]
   from = "/api/*"
