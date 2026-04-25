@@ -3,8 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import { errorHandler } from './middleware/errorHandler.js';
@@ -20,9 +18,6 @@ import { startReminderCron } from './services/reminderCron.js';
 import prisma from './utils/prisma.js';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,14 +72,6 @@ app.get('/api/health', (req, res) => {
 // ============================================
 // SERVE FRONTEND IN PRODUCTION
 // ============================================
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
-  console.log(`📁 Serving static files from: ${clientDist}`);
-  app.use(express.static(clientDist));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-}
 
 // ============================================
 // ERROR HANDLER
