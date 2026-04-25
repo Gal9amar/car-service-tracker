@@ -16,7 +16,7 @@
 - ייצוא PDF היסטוריית רכב
 - Dark Mode + RTL
 
-**URL:** https://car-service-tracker.up.railway.app
+**URL:** https://carhistory1.netlify.app
 **Repo:** Gal9amar/car-service-tracker
 
 ---
@@ -25,9 +25,13 @@
 
 ```
 car-service-tracker/
-├── package.json               ← root: concurrently server + client
-├── railway.toml               ← הגדרות Railway
-├── .env.example               ← תבנית משתני סביבה
+├── package.json               ← root: concurrently server + client + libsql/pg deps
+├── netlify.toml               ← הגדרות Netlify (build, functions, redirects)
+├── netlify/
+│   └── functions/
+│       ├── api.js             ← serverless-http wrapper for Express app
+│       ├── cron-reminders.js  ← Netlify Scheduled Function (מחליף node-cron)
+│       └── package.json       ← { "type": "module" }
 ├── client/                    ← React 18 + Vite (פורט 5173)
 │   ├── index.html
 │   ├── vite.config.js         ← proxy /api → localhost:3000
@@ -48,10 +52,11 @@ car-service-tracker/
 │       ├── context/AuthContext.jsx    ← JWT state
 │       ├── services/api.js            ← כל ה-API calls
 │       └── utils/constants.js         ← SERVICE_TYPES, EXPENSE_CATEGORIES
-└── server/                    ← Node.js + Express (פורט 3000)
+└── server/                    ← Node.js + Express (פורט 3000 בפיתוח)
     ├── package.json
+    ├── .env                   ← TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, JWT_SECRET, ...
     ├── src/
-    │   ├── app.js             ← entry + route registration
+    │   ├── app.js             ← entry + route registration (ללא static serving)
     │   ├── routes/
     │   │   ├── auth.js        ← register/login/logout/me
     │   │   ├── vehicles.js    ← CRUD + gov data refresh
@@ -63,39 +68,43 @@ car-service-tracker/
     │   │   └── reports.js     ← PDF generation
     │   ├── services/
     │   │   ├── emailService.js     ← 7 תבניות מייל
-    │   │   ├── reminderCron.js     ← cron jobs
+    │   │   ├── reminderCron.js     ← checkAndSendReminders() (מופעל מ-Netlify Scheduled Function)
     │   │   └── vehicleLookup.js    ← data.gov.il integration
     │   ├── middleware/
     │   │   ├── auth.js             ← JWT verification
     │   │   └── errorHandler.js
-    │   └── utils/prisma.js         ← Prisma singleton
+    │   └── utils/prisma.js         ← Prisma + @prisma/adapter-libsql + @libsql/client
     └── prisma/
-        └── schema.prisma           ← PostgreSQL schema
+        └── schema.prisma           ← SQLite schema (provider = "sqlite", driverAdapters)
 ```
 
 ---
 
 ## פריסה (Deploy)
 
-- **Railway** – פריסה אוטומטית מ-GitHub
-- Push ל-main → Railway מתעדכן אוטומטית
+- **Netlify** – פריסה אוטומטית מ-GitHub: `Gal9amar/car-service-tracker`
+- Push ל-main → Netlify מתעדכן אוטומטית
+- **Database:** Turso (SQLite-as-a-service) – לא מקפיא חשבונות חינמיים
 
-### Build
+### Build Command (netlify.toml)
 ```bash
-# Client
-cd client && npm install && npm run build
-
-# Server
-cd server && npm install && npx prisma generate
-npx prisma db push --accept-data-loss && npm start
+cd server && npm install && npx prisma generate && \
+cp -r node_modules netlify_node_modules && \
+cd ../client && npm install --include=dev && npm run build && \
+cd .. && mv server/netlify_node_modules netlify/functions/node_modules
 ```
+
+### Publish Directory
+`client/dist`
+
+### Functions Directory
+`netlify/functions`
 
 ### פקודות שימושיות
 ```bash
 npm run dev          # server + client במקביל (root)
-npm run db:push      # סינכרון schema עם DB
+npm run db:push      # סינכרון schema עם Turso
 npm run db:studio    # Prisma Studio UI (localhost:5555)
-firebase deploy      # לא רלוונטי לפרויקט זה
 ```
 
 ---
@@ -106,17 +115,38 @@ firebase deploy      # לא רלוונטי לפרויקט זה
 |-------|-----------|
 | Frontend | React 18, Vite, Tailwind CSS (indigo), Recharts |
 | Backend | Node.js, Express, ES Modules |
-| Database | PostgreSQL (Railway managed) |
-| ORM | Prisma 5 |
+| Hosting | Netlify (Functions + CDN) |
+| Database | Turso (SQLite-as-a-service, libsql protocol) |
+| ORM | Prisma 5 + @prisma/adapter-libsql |
 | Auth | JWT + bcrypt (httpOnly cookie) |
 | Email | Resend SDK |
 | PDF | PDFKit |
-| Cron | node-cron |
+| Cron | Netlify Scheduled Functions (מחליף node-cron) |
 | File Upload | Multer + AWS S3/Cloudflare R2 (אופציונלי) |
 
 ---
 
 ## Database – Prisma Schema
+
+### הגדרות schema.prisma
+```prisma
+datasource db {
+  provider = "sqlite"
+  url      = env("TURSO_DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+```
+
+### הערות SQLite
+- **אין enums** – כל enum הוחלף ב-`String`
+- **אין `@db.Date` / `@db.Decimal`** – הוסרו
+- **`String[]` → `String @default("[]")`** – JSON string במקום מערך
+- `ownershipHistory` ו-`recalls` הם JSON string – לפרסר עם `parseVehicle()`
 
 ### מודלים עיקריים
 
@@ -125,7 +155,6 @@ firebase deploy      # לא רלוונטי לפרויקט זה
 **Vehicle** – 50+ שדות:
 - קלט משתמש: nickname, currentMileage, imageUrl
 - data.gov.il: לוחית, יצרן, דגם, שנה, צבע, דלק, מנוע, VIN, צמיגים, תאריכי טסט, WLTP, בעלויות, recalls
-- JSON fields: `ownershipHistory`, `recalls` (parse עם `parseVehicle()`)
 
 **Service** – 13 סוגים:
 `PERIODIC | OIL | BRAKES | TIRES | BATTERY | AC | TIMING_BELT | FILTERS | SUSPENSION | ELECTRICAL | BODY_WORK | GENERAL | OTHER`
@@ -133,7 +162,6 @@ firebase deploy      # לא רלוונטי לפרויקט זה
 
 **Expense** – 9 קטגוריות:
 `FUEL | PARKING | FINE | INSURANCE | LICENSE | TOLL | WASH | ACCESSORIES | OTHER`
-- Amount: `Decimal(10,2)` – יש להמיר עם `Number()` להשוואות
 
 **Reminder** – 7 סוגים:
 `TEST | OIL | INSURANCE | LICENSE | TIRES | BRAKES | CUSTOM`
@@ -147,23 +175,49 @@ firebase deploy      # לא רלוונטי לפרויקט זה
 
 ## משתני סביבה
 
+### server/.env (פיתוח מקומי)
 ```env
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
+TURSO_DATABASE_URL=libsql://car-service-tracker-gal9amar.aws-us-east-1.turso.io
+TURSO_AUTH_TOKEN=eyJhbGci...
 JWT_SECRET=<32+ chars>
 RESEND_API_KEY=re_xxxxxxxx
-FRONTEND_URL=https://car-service-tracker.up.railway.app
-NODE_ENV=production
+FRONTEND_URL=https://carhistory1.netlify.app
+NODE_ENV=development
 PORT=3000
-
-# אופציונלי – S3/R2:
-S3_BUCKET=car-service-tracker
-S3_ACCESS_KEY=xxxx
-S3_SECRET_KEY=xxxx
-S3_ENDPOINT=https://...
 ```
+
+### Netlify Environment Variables (ייצור)
+אותם משתנים, מוגדרים בממשק Netlify → Site settings → Environment variables.
+`NODE_ENV=production`
 
 **Email:** כל המיילים עוברים כעת ל-`ga9service@gmail.com` (סביבת פיתוח).
 לייצור: לאמת דומיין ב-Resend.
+
+---
+
+## ארכיטקטורת Netlify Functions
+
+### api.js
+```js
+import serverless from 'serverless-http';
+import app from '../../server/src/app.js';
+export const handler = serverless(app);
+```
+- כל קריאות `/api/*` מנותבות מ-Netlify redirect → `/.netlify/functions/api/:splat`
+
+### cron-reminders.js
+```js
+import { schedule } from '@netlify/functions';
+export const handler = schedule('0 5 * * *', async () => { ... });
+```
+- רץ כל יום ב-05:00 UTC (08:00 ירושלים)
+- קורא ל-`checkAndSendReminders()` מ-reminderCron.js
+
+### app.js – מצב ייצור
+- `app.set('trust proxy', 1)` – נדרש לrate-limit מאחורי proxy של Netlify
+- **אין** `app.listen()` בייצור – serverless-http מטפל בזה
+- **אין** `import.meta.url` בקוד – לא עובד ב-esbuild CJS output
+- cron + listen נטענים רק ב-`NODE_ENV !== 'production'` (dynamic import)
 
 ---
 
@@ -174,9 +228,8 @@ S3_ENDPOINT=https://...
 - Recalls: פילטר עם `MISPAR_RECHEV` (אותיות גדולות)
 - Refresh אוטומטי: כל יום ראשון 03:00 (ירושלים) לרכבים שלא עודכנו 7+ ימים
 
-### Cron Jobs (Asia/Jerusalem)
-- **08:00 יומי:** תזכורות שפגות ב-7 ימים + ביטוח/טסט ב-30 ימים
-- **יום א׳ 03:00:** Refresh רכבים + התראות recalls
+### Scheduled Functions (Netlify)
+- **`0 5 * * *`** (08:00 ירושלים): תזכורות שפגות ב-7 ימים + ביטוח/טסט ב-30 ימים
 
 ### מייל – Fire-and-forget
 שגיאות מייל לא מכשילות את ה-request.
@@ -193,7 +246,7 @@ GET  /api/vehicles                  → רשימת רכבים
 POST /api/vehicles                  → יצירה + שמירת gov data
 GET  /api/vehicles/lookup/:plate    → lookup ללא שמירה
 POST /api/vehicles/:id/refresh      → re-fetch gov data
-GET  /api/vehicles/:id/pdf          ← PDF export
+GET  /api/vehicles/:id/pdf          → PDF export
 POST /api/services                  → + email + תזכורת אוטומטית
 GET  /api/expenses/summary?vehicleId=&months=  → סטטיסטיקות
 POST /api/insurances                → + ביטול ישן + תזכורת
@@ -213,9 +266,11 @@ GET  /api/dashboard                 → stats כל הרכבים
 
 ## כללים חשובים
 
-1. **Prisma `db push --accept-data-loss`** נדרש בגלל הסרת enum values – בטוח לשינויים additives
+1. **אין enum ב-SQLite** – ערכים הם strings, ולידציה דרך Zod בלבד
 2. JSON fields (`ownershipHistory`, `recalls`) – תמיד לפרסר עם `parseVehicle()`
-3. `Decimal(10,2)` בשדות עלות – `Number()` להשוואות
-4. Rate limiting: auth routes – 20 requests / 15 דקות
-5. CORS: dev → localhost:5173-5177 | prod → FRONTEND_URL
-6. Push ל-main → Railway deploy אוטומטי
+3. `app.set('trust proxy', 1)` – חובה לrate-limit ב-Netlify
+4. **אין `import.meta.url`** בשום קובץ server-side – לא עובד ב-esbuild
+5. Rate limiting: auth routes – 20 requests / 15 דקות
+6. CORS: dev → localhost:5173-5177 | prod → FRONTEND_URL
+7. Push ל-main → Netlify deploy אוטומטי
+8. `external_node_modules` ב-netlify.toml – כל ה-native deps חייבים להופיע שם
