@@ -37,7 +37,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // allow same-origin requests (no origin header) and allowed origins
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    // in production, also allow the railway domain automatically
+    // in production (Netlify), allow all origins — FRONTEND_URL covers the main domain
     if (process.env.NODE_ENV === 'production') return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },

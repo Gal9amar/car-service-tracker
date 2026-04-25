@@ -1,6 +1,6 @@
 # 🚗 Car Service Tracker — מעקב טיפולים לרכב
 
-מערכת ניהול טיפולים, הוצאות ותזכורות לרכב. בנויה עם React + Node.js + PostgreSQL.
+מערכת ניהול טיפולים, הוצאות ותזכורות לרכב. בנויה עם React + Node.js + Turso (SQLite).
 
 ## ✨ פיצ'רים
 
@@ -8,9 +8,8 @@
 - **יומן טיפולים** — תיעוד מלא של כל טיפול עם עלות, מוסך, קילומטראז' וצירופים
 - **מעקב הוצאות** — דלק, חניה, דוחות, ביטוח — הכל במקום אחד
 - **תזכורות חכמות** — לפי תאריך או קילומטראז' עם התראות במייל
-- **חיפוש מוסכים** — מוסכים לפי אזור עם דירוגים וביקורות
 - **דוח PDF** — ייצוא היסטוריית רכב מלאה למכירה
-- **אימות משתמשים** — Google OAuth + רישום עם אימייל/סיסמה
+- **אימות משתמשים** — רישום עם אימייל/סיסמה
 - **ממשק בעברית** — RTL מלא עם מצב כהה
 
 ## 🛠️ סטאק טכנולוגי
@@ -18,11 +17,12 @@
 | שכבה | טכנולוגיה |
 |------|----------|
 | Frontend | React 18 + Vite + Tailwind CSS |
-| Backend | Node.js + Express |
-| Database | PostgreSQL (Railway) |
-| ORM | Prisma |
-| Auth | Passport.js (Google OAuth + Local) |
-| PDF | PDFKit |
+| Backend | Node.js + Express (serverless via Netlify Functions) |
+| Database | Turso (SQLite-as-a-service) |
+| ORM | Prisma 5 + @prisma/adapter-libsql |
+| Auth | JWT + bcrypt (httpOnly cookie) |
+| Email | Resend |
+| Hosting | Netlify |
 
 ## 🚀 התקנה מקומית
 
@@ -37,25 +37,29 @@ cd ../client && npm install
 cd ..
 
 # Setup environment
-cp .env.example server/.env
-# Edit server/.env with your values
+cp server/.env.example server/.env
+# Edit server/.env with your Turso credentials
 
 # Setup database
 cd server
-npx prisma migrate dev
+npx prisma db push
 cd ..
 
 # Run
 npm run dev
 ```
 
-## 🚂 Deploy ל-Railway
+## 🌐 Deploy ל-Netlify
 
-1. צור פרויקט חדש ב-Railway
-2. הוסף PostgreSQL plugin
-3. חבר את ה-GitHub repo
-4. הגדר את ה-Environment Variables (ראה `.env.example`)
-5. Railway יבנה וידפלוי אוטומטית
+1. חבר את ה-GitHub repo ב-netlify.com
+2. הגדר את ה-Environment Variables:
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `JWT_SECRET`
+   - `RESEND_API_KEY`
+   - `FRONTEND_URL=https://your-site.netlify.app`
+   - `NODE_ENV=production`
+3. Netlify יבנה וידפלוי אוטומטית
 
 ## 📁 מבנה הפרויקט
 
@@ -73,11 +77,11 @@ car-service-tracker/
 │   ├── src/
 │   │   ├── routes/       # Express routes
 │   │   ├── middleware/    # Auth, errors
-│   │   └── services/     # Vehicle lookup, PDF
+│   │   └── services/     # Vehicle lookup, PDF, email, cron
 │   ├── prisma/           # Database schema
 │   └── ...
-├── railway.toml          # Railway config
-└── nixpacks.toml         # Build config
+└── netlify/
+    └── functions/        # Serverless entry point
 ```
 
 ## 📡 Vehicle API
