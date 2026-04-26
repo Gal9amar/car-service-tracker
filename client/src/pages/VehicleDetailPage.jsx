@@ -160,11 +160,9 @@ export default function VehicleDetailPage() {
 
         {/* Name + plate */}
         <div className="px-5 pt-4 pb-3 text-center border-b border-surface-100 dark:border-surface-700">
-          <h1 className="text-xl font-bold text-surface-900 dark:text-white">
-            {vehicle.manufacturer} {vehicle.model}
-            {vehicle.year && <span className="text-surface-400 font-normal text-base mr-1">· {vehicle.year}</span>}
-          </h1>
-          {vehicle.nickname && <p className="text-sm text-surface-400 mt-0.5">{vehicle.nickname}</p>}
+          <p className="text-xs font-medium text-surface-400 uppercase tracking-widest mb-1">{vehicle.manufacturer}</p>
+          <h1 className="text-2xl font-extrabold text-surface-900 dark:text-white leading-tight">{vehicle.model}</h1>
+          {vehicle.year && <p className="text-sm text-surface-400 mt-0.5">{vehicle.year}</p>}
           <div className="flex justify-center mt-3">
             <VehiclePlate number={vehicle.licensePlate} />
           </div>
