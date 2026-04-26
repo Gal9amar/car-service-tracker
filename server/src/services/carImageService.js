@@ -308,6 +308,11 @@ export async function fetchCarImage(manufacturer, model, year, color) {
     queries.push(`${mfrEn} ${modelDsp} ${colorEn}`);
   }
   queries.push(`${mfrEn} ${modelDsp}`);
+  // Fallback: try white if no color match found
+  if (colorEn && colorEn !== 'white') {
+    if (year) queries.push(`${year} ${mfrEn} ${modelDsp} white`);
+    queries.push(`${mfrEn} ${modelDsp} white`);
+  }
 
   for (const q of queries) {
     const img = await searchCommonsImage(q);
