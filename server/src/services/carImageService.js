@@ -14,53 +14,116 @@ const WIKIPEDIA_API = 'https://en.wikipedia.org/api/rest_v1/page/summary';
 const BAD_IMAGE_PATTERNS = [/logo/i, /flag/i, /coat.*arm/i, /emblem/i, /badge/i, /portrait/i, /headshot/i, /schematic/i, /diagram/i];
 
 // Hebrew manufacturer → English name used in Wikipedia/Commons
-// Includes variants with Israeli distributor suffixes (e.g. "יונדאי צ'כיה", "טויוטה מוטורס")
+// Maps Hebrew manufacturer names (as returned by Israeli gov API) to English Wikipedia names.
+// Includes common spelling variants and distributor suffixes stripped by resolveMfr().
 const MFR_MAP = {
+  // Toyota
   'טויוטה':     'Toyota',
+  // Hyundai
   'יונדאי':     'Hyundai',
+  // Kia
   'קיה':        'Kia',
+  // Mazda — gov returns "מזדה" (no aleph) and "מזדה יפן"
   'מאזדה':      'Mazda',
+  'מזדה':       'Mazda',
+  // Honda
   'הונדה':      'Honda',
+  // Nissan
   'ניסאן':      'Nissan',
+  // Volkswagen
   'פולקסווגן':  'Volkswagen',
+  'פולקסוואגן': 'Volkswagen',
+  // Skoda
   'סקודה':      'Skoda',
+  'שקודה':      'Skoda',
+  // Chevrolet
   'שברולט':     'Chevrolet',
+  // Ford
   'פורד':       'Ford',
+  // Citroen
   'סיטרואן':    'Citroen',
+  'סיטרואן':    'Citroen',
+  // Peugeot
   "פיג'ו":      'Peugeot',
+  'פיגו':       'Peugeot',
+  // Renault
   'רנו':        'Renault',
+  // Audi
   'אאודי':      'Audi',
+  'אודי':       'Audi',
+  // BMW
   'ב.מ.וו':     'BMW',
+  'ב.מ.ו':      'BMW',
+  'BMW':        'BMW',
+  // Mercedes
   'מרצדס בנץ':  'Mercedes-Benz',
   'מרצדס':      'Mercedes-Benz',
+  // Subaru
   'סובארו':     'Subaru',
+  // Mitsubishi
   'מיצובישי':   'Mitsubishi',
+  'מיצובישי':   'Mitsubishi',
+  // SEAT
   'סיאט':       'SEAT',
+  // Opel
   'אופל':       'Opel',
+  // Volvo
   'וולוו':      'Volvo',
+  // Jeep
   "ג'יפ":       'Jeep',
+  'ג׳יפ':       'Jeep',
+  // Land Rover
   'לנד רובר':   'Land Rover',
+  // MG
   'mg':         'MG',
   'MG':         'MG',
+  // Haval
   'חאבאל':      'Haval',
+  // Chery
   "צ'רי":       'Chery',
+  'צ׳רי':       'Chery',
+  // BYD
   'בי.וואי.די': 'BYD',
+  'BYD':        'BYD',
+  // Tesla
   'טסלה':       'Tesla',
+  // SsangYong
   'סאנגיונג':   'SsangYong',
+  'סנגיונג':    'SsangYong',
+  // Suzuki
   'סוזוקי':     'Suzuki',
+  // Lexus
   'לקסוס':      'Lexus',
+  // Infiniti
   'אינפיניטי':  'Infiniti',
+  // Cadillac
   'קאדילק':     'Cadillac',
+  // Porsche
   'פורשה':      'Porsche',
+  // Alfa Romeo
   'אלפא רומיאו':'Alfa Romeo',
   'אלפא רומאו': 'Alfa Romeo',
+  // Fiat
   'פיאט':       'Fiat',
+  // Dacia
   'דאציה':      'Dacia',
   "דאצ'יה":     'Dacia',
+  // Lancia
   'לנציה':      'Lancia',
+  // Genesis
   'גנסיס':      'Genesis',
+  "ג'נסיס":     'Genesis',
+  // Saab
   'סאב':        'Saab',
+  // Mini
   'מיני':       'Mini',
+  // Isuzu
+  'איסוזו':     'Isuzu',
+  // Dodge
+  'דודג':       'Dodge',
+  "דודג'":      'Dodge',
+  // Jeep (alternate)
+  'ג׳יפ':      'Jeep',
 };
 
 // Model name clean-ups for search: uppercase gov value → display name for search
