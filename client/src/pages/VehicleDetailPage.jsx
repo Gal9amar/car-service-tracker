@@ -48,6 +48,8 @@ export default function VehicleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
   const [refreshingImg, setRefreshingImg] = useState(false);
+  const [imgToast, setImgToast] = useState(null); // { type, msg }
+  const [imgCacheBust, setImgCacheBust] = useState('');
 
   const fetchVehicle = useCallback(() => {
     setImgError(false);
@@ -56,15 +58,29 @@ export default function VehicleDetailPage() {
 
   useEffect(() => { fetchVehicle(); }, [fetchVehicle]);
 
+  const showImgToast = (type, msg) => {
+    setImgToast({ type, msg });
+    setTimeout(() => setImgToast(null), 4000);
+  };
+
   const handleRefreshImage = async () => {
     setRefreshingImg(true);
     try {
       const res = await vehiclesApi.refreshImage(vehicle.id);
       if (res.imageUrl) {
+        // Force browser to re-fetch even if URL is identical
+        const bust = `?t=${Date.now()}`;
+        setImgCacheBust(bust);
         setVehicle(v => ({ ...v, imageUrl: res.imageUrl }));
         setImgError(false);
+        showImgToast('success', 'תמונה עודכנה בהצלחה');
+      } else {
+        showImgToast('error', 'לא נמצאה תמונה מתאימה');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      showImgToast('error', 'שגיאה בטעינת תמונה');
+    }
     finally { setRefreshingImg(false); }
   };
 
@@ -117,7 +133,7 @@ export default function VehicleDetailPage() {
         <div className="relative bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-700 dark:to-surface-800 h-52 flex items-center justify-center">
           {hasImage ? (
             <img
-              src={vehicle.imageUrl}
+              src={`${vehicle.imageUrl}${imgCacheBust}`}
               alt={`${vehicle.manufacturer} ${vehicle.model}`}
               className="h-full w-full object-contain p-4 drop-shadow-lg"
               onError={() => setImgError(true)}
@@ -157,6 +173,18 @@ export default function VehicleDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Image toast */}
+        {imgToast && (
+          <div className={`mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium ${
+            imgToast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+              : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+          }`}>
+            <span>{imgToast.type === 'success' ? '✓' : '✗'}</span>
+            {imgToast.msg}
+          </div>
+        )}
 
         {/* Name + plate */}
         <div className="px-5 pt-4 pb-3 text-center border-b border-surface-100 dark:border-surface-700">
