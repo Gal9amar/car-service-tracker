@@ -132,12 +132,17 @@ export default function VehicleDetailPage() {
         {/* Car image area */}
         <div className="relative bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-700 dark:to-surface-800 h-52 flex items-center justify-center">
           {hasImage ? (
-            <img
-              src={`${vehicle.imageUrl}${imgCacheBust}`}
-              alt={`${vehicle.manufacturer} ${vehicle.model}`}
-              className="h-full w-full object-contain p-4 drop-shadow-lg"
-              onError={() => setImgError(true)}
-            />
+            <>
+              <img
+                src={`${vehicle.imageUrl}${imgCacheBust}`}
+                alt={`${vehicle.manufacturer} ${vehicle.model}`}
+                className="h-full w-full object-contain p-4 drop-shadow-lg"
+                onError={() => setImgError(true)}
+              />
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-white/50 bg-black/30 px-2 py-0.5 rounded-full pointer-events-none select-none">
+                תמונה להמחשה בלבד
+              </span>
+            </>
           ) : (
             <div className="flex flex-col items-center gap-3 text-surface-300 dark:text-surface-600">
               <span className="text-7xl">🚗</span>
