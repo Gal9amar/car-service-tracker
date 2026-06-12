@@ -422,19 +422,17 @@ function extractMarketPrices(data, filterYear) {
       return null;
     }
 
-    // Filter by year (same as carinfo-bot), fall back to all if too few
+    // Filter by year: field is vehicleDates.yearOfProduction (from carinfo-bot)
     if (filterYear) {
-      const yearItems = items.filter(i => {
-        const y = i.yearOfProduction ?? i.year ?? i.Year;
-        return y === filterYear || y === String(filterYear);
-      });
+      const yearItems = items.filter(i =>
+        Number(i.vehicleDates?.yearOfProduction ?? i.yearOfProduction ?? i.year ?? 0) === Number(filterYear)
+      );
       if (yearItems.length >= 3) items = yearItems;
     }
 
-    const priceArr = items
-      .map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0))
-      .filter(p => p > 0);
+    const priceArr = items.map(i => Number(i.price ?? 0)).filter(p => p > 0);
     if (!priceArr.length) return null;
+    const kmArr = items.map(i => Number(i.km ?? 0)).filter(k => k > 0);
     const sorted = [...priceArr].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     return {
@@ -443,6 +441,7 @@ function extractMarketPrices(data, filterYear) {
       min:    sorted[0],
       max:    sorted[sorted.length - 1],
       count:  priceArr.length,
+      avgKm:  kmArr.length ? Math.round(kmArr.reduce((a, b) => a + b, 0) / kmArr.length) : null,
     };
   } catch { return null; }
 }

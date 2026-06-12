@@ -301,9 +301,10 @@ export default function VehicleDetailPage() {
                   <p className="text-[10px] text-surface-400 mt-0.5">מקסימום</p>
                 </div>
               </div>
-              {marketPrice.prices.count > 0 && (
-                <p className="text-center text-[10px] text-surface-400 mt-2">מבוסס על {marketPrice.prices.count} מחירים</p>
-              )}
+              <div className="flex justify-center gap-3 mt-2 text-[10px] text-surface-400 flex-wrap">
+                {marketPrice.prices.count > 0 && <span>מבוסס על {marketPrice.prices.count} מחירים</span>}
+                {marketPrice.prices.avgKm && <span>• ממוצע {marketPrice.prices.avgKm.toLocaleString('he-IL')} ק"מ</span>}
+              </div>
             </div>
           )}
 
