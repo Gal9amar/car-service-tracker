@@ -73,4 +73,18 @@ router.get('/users', requireAdmin, async (req, res, next) => {
   }
 });
 
+// DELETE /api/admin/users/:id – מחיקת משתמש וכל נתוניו
+router.delete('/users/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'לא ניתן למחוק את עצמך.' });
+    }
+    await prisma.user.delete({ where: { id } });
+    res.json({ message: 'המשתמש נמחק בהצלחה.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

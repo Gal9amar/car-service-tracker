@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Car, Wrench, CreditCard, ChevronDown, ChevronUp, Calendar, Gauge } from 'lucide-react';
+import { Users, Car, Wrench, CreditCard, ChevronDown, ChevronUp, Calendar, Gauge, Trash2 } from 'lucide-react';
 
 const ADMIN_API = '/api/admin/users';
 
@@ -132,13 +132,31 @@ function VehicleCard({ vehicle }) {
   );
 }
 
-function UserCard({ user }) {
+function UserCard({ user, onDelete }) {
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'שגיאה');
+      onDelete(user.id);
+    } catch (err) {
+      alert(err.message);
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   return (
     <div className="card p-0 overflow-hidden">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { setOpen(o => !o); setConfirmDelete(false); }}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors text-right"
       >
         <div className="flex items-center gap-3">
@@ -155,6 +173,21 @@ function UserCard({ user }) {
             <p className="text-xs text-surface-400">נרשם {fmt(user.createdAt)}</p>
             <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">{user._count.vehicles} רכבים</p>
           </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className={`p-1.5 rounded-lg transition-colors text-xs font-medium flex items-center gap-1 ${
+              confirmDelete
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600'
+            } disabled:opacity-50`}
+            title="מחק משתמש"
+          >
+            {deleting
+              ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <><Trash2 size={14} />{confirmDelete && <span>אישור</span>}</>
+            }
+          </button>
           {open ? <ChevronUp size={16} className="text-surface-400" /> : <ChevronDown size={16} className="text-surface-400" />}
         </div>
       </button>
@@ -188,6 +221,7 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const deleteUser = (id) => setUsers(prev => prev.filter(u => u.id !== id));
   const totalVehicles = users.reduce((s, u) => s + u._count.vehicles, 0);
 
   if (loading) {
@@ -240,7 +274,7 @@ export default function AdminPage() {
         {users.length === 0 ? (
           <p className="text-center text-surface-400 py-10">אין משתמשים</p>
         ) : (
-          users.map(u => <UserCard key={u.id} user={u} />)
+          users.map(u => <UserCard key={u.id} user={u} onDelete={deleteUser} />)
         )}
       </div>
     </div>
