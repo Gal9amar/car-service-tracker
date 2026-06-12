@@ -39,8 +39,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const sendCode = async (email, name) => {
+    return auth.sendCode({ email, ...(name ? { name } : {}) });
+  };
+
+  const verifyCode = async (email, code) => {
+    const data = await auth.verifyCode({ email, code });
+    setUser(data.user);
+    return data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, sendCode, verifyCode }}>
       {children}
     </AuthContext.Provider>
   );
