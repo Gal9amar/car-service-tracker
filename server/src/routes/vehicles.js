@@ -261,40 +261,35 @@ router.get('/:id/market-price', async (req, res, next) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: req.params.id, userId: req.user.id },
-      select: { manufacturer: true, model: true, year: true, manufacturerCode: true, modelId: true },
+      select: { manufacturer: true, model: true, year: true },
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    const proxyUrl = process.env.YAD2_PROXY_URL;
-    const proxySecret = process.env.YAD2_PROXY_SECRET;
-    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const workerUrl = process.env.YAD2_CF_WORKER_URL;
+    if (!workerUrl) return res.status(503).json({ error: 'Market price service not configured.' });
 
-    // Proxy expects numeric codes and year as range "YYYY-YYYY"
+    // Cloudflare Worker accepts text names (tozeret_nm, kinuy_mishari) and plain year
     const buildParams = (type, rows = '50') => {
       const p = new URLSearchParams({ type, rows });
-      if (vehicle.manufacturerCode) p.set('manufacturer', String(vehicle.manufacturerCode));
-      if (vehicle.modelId)          p.set('model', String(vehicle.modelId));
-      if (vehicle.year)             p.set('year', `${vehicle.year}-${vehicle.year}`);
-      if (proxySecret)              p.set('secret', proxySecret);
+      if (vehicle.manufacturer) p.set('manufacturer', vehicle.manufacturer);
+      if (vehicle.model)        p.set('model', vehicle.model);
+      if (vehicle.year)         p.set('year', String(vehicle.year));
       return p;
     };
 
-    const fetchProxy = async (params) => {
-      const url = `${proxyUrl}?${params}`;
-      const r = await fetch(url, {
-        headers: { 'X-Secret': proxySecret, 'Authorization': proxySecret },
-      });
+    const fetchWorker = async (params) => {
+      const r = await fetch(`${workerUrl}?${params}`);
       if (!r.ok) {
         const body = await r.text().catch(() => '');
-        console.log('[market-price] proxy status:', r.status, body.slice(0, 300));
+        console.log('[market-price] worker status:', r.status, body.slice(0, 300));
         return null;
       }
       return r.json();
     };
 
     const [lookalike, feed] = await Promise.all([
-      fetchProxy(buildParams('lookalike')).catch(e => { console.log('[market-price] fetch err:', e.message); return null; }),
-      fetchProxy(buildParams('feed', '1')).catch(e => null),
+      fetchWorker(buildParams('lookalike')).catch(e => { console.log('[market-price] fetch err:', e.message); return null; }),
+      fetchWorker(buildParams('feed', '1')).catch(e => null),
     ]);
 
     console.log('[market-price] lookalike raw:', JSON.stringify(lookalike)?.slice(0, 500));
