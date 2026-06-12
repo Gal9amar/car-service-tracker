@@ -435,11 +435,16 @@ function extractMarketPrices(data, filterYear) {
     const kmArr = items.map(i => Number(i.km ?? 0)).filter(k => k > 0);
     const sorted = [...priceArr].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
+
+    // Trim bottom and top 10% to exclude outliers for min/max
+    const trim = Math.max(1, Math.floor(sorted.length * 0.1));
+    const trimmed = sorted.length >= 10 ? sorted.slice(trim, sorted.length - trim) : sorted;
+
     return {
       avg:    Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
       median: sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2),
-      min:    sorted[0],
-      max:    sorted[sorted.length - 1],
+      min:    trimmed[0],
+      max:    trimmed[trimmed.length - 1],
       count:  priceArr.length,
       avgKm:  kmArr.length ? Math.round(kmArr.reduce((a, b) => a + b, 0) / kmArr.length) : null,
     };

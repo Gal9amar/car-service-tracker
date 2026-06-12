@@ -293,7 +293,7 @@ export default function VehicleDetailPage() {
                 {marketPrice.prices.median && (
                   <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#EFF6FF' }}>
                     <p className="text-xs font-black text-blue-600" dir="ltr">₪{marketPrice.prices.median.toLocaleString('he-IL')}</p>
-                    <p className="text-[10px] text-surface-400 mt-0.5">חציון</p>
+                    <p className="text-[10px] text-surface-400 mt-0.5">ממוצע</p>
                   </div>
                 )}
                 <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#FFF7ED' }}>
