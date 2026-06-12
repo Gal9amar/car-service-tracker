@@ -35,6 +35,7 @@ export const auth = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
   update: (data) => request('/auth/me', { method: 'PUT', body: data }),
+  deleteAccount: () => request('/auth/me', { method: 'DELETE' }),
 };
 
 // Vehicles

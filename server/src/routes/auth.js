@@ -228,4 +228,15 @@ router.post('/verify-code', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ============================================
+// DELETE /api/auth/me  — מחיקת חשבון + כל הנתונים
+// ============================================
+router.delete('/me', authenticate, async (req, res, next) => {
+  try {
+    await prisma.user.delete({ where: { id: req.user.id } });
+    res.clearCookie('token');
+    res.json({ message: 'החשבון נמחק בהצלחה.' });
+  } catch (err) { next(err); }
+});
+
 export default router;
