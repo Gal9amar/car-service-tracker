@@ -17,7 +17,7 @@ export const SERVICE_TYPES = {
 export const EXPENSE_CATEGORIES = {
   FUEL: 'דלק',
   PARKING: 'חניה',
-  FINE: 'דוח',
+  FINE: 'קנס',
   INSURANCE: 'ביטוח',
   LICENSE: 'רישיון',
   TOLL: 'אגרה',

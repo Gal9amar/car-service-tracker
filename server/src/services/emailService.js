@@ -276,7 +276,7 @@ export function buildNewReminderEmailHtml({ userName, reminder, vehicle }) {
 export function buildNewServiceEmailHtml({ userName, service, vehicle, garage }) {
   const serviceTypeLabels = {
     PERIODIC: 'טיפול תקופתי', OIL: 'החלפת שמן', BRAKES: 'בלמים', TIRES: 'צמיגים',
-    BATTERY: 'מצבר', TEST: 'טסט שנתי', AC: 'מיזוג אוויר', TIMING_BELT: 'רצועת תזמון',
+    BATTERY: 'מצבר', TEST: 'טסט שנתי', AC: 'מיזוג אוויר', TIMING_BELT: 'רצועת טיימינג',
     FILTERS: 'פילטרים', SUSPENSION: 'מתלים', ELECTRICAL: 'חשמל', BODY_WORK: 'פחחות',
     GENERAL: 'טיפול כללי', OTHER: 'אחר',
   };

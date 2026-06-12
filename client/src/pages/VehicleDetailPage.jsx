@@ -754,6 +754,7 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['לוחית רישוי', vehicle.licensePlate],
     ['יצרן', vehicle.manufacturer],
     ['דגם', vehicle.model],
+    ['רמת גימור', vehicle.trim],
     ['שנת ייצור', vehicle.year],
     ['צבע', vehicle.color],
     ['דלק', vehicle.fuelType],
@@ -763,17 +764,26 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['כוח סוס', vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : null],
     ['תיבת הילוכים', vehicle.transmission],
     ['הנעה', vehicle.driveType],
+    ['תקן', vehicle.standardType],
     ['סוג מרכב', vehicle.bodyType],
     ['דלתות', vehicle.doors],
     ['מושבים', vehicle.seats],
-    ['משקל', vehicle.weight ? `${vehicle.weight} ק"ג` : null],
+    ['חלונות חשמל', vehicle.electricWindows],
+    ['משקל כולל', vehicle.weight ? `${vehicle.weight} ק"ג` : null],
+    ['כושר גרירה עם בלמים', vehicle.towingWithBrakes ? `${vehicle.towingWithBrakes} ק"ג` : null],
+    ['כושר גרירה ללא בלמים', vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : null],
     ['צמיג קדמי', vehicle.frontTire],
     ['צמיג אחורי', vehicle.rearTire],
     ['כריות אוויר', vehicle.airbags],
     ['בעלות', vehicle.ownership],
     ['מקור', vehicle.origin],
+    ['עלייה לכביש', vehicle.firstRegistered ? fmtDate(vehicle.firstRegistered) : null],
     ['CO₂', vehicle.co2 ? `${vehicle.co2} גר/ק"מ` : null],
+    ['CO₂ עיר', vehicle.co2City ? `${vehicle.co2City} גר/ק"מ` : null],
+    ['CO₂ כביש מהיר', vehicle.co2Highway ? `${vehicle.co2Highway} גר/ק"מ` : null],
+    ['NOx', vehicle.nox ? `${vehicle.nox} מ"ג/ק"מ` : null],
     ['ציון ירוק', vehicle.greenScore],
+    ['ניקוד בטיחות', vehicle.safetyScore],
     ['דירוג בטיחות', vehicle.safetyRating],
   ].filter(([, v]) => v !== null && v !== undefined && v !== '');
 
@@ -793,9 +803,18 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['שיוט אדפטיבי', vehicle.hasAdaptiveCruise],
     ['זיהוי הולכי רגל', vehicle.hasPedestrianDetect],
     ['בלימת חירום אוטומטית', vehicle.hasAutoEmergencyBrake],
+    ['אורות גבוהים אוטומטיים', vehicle.hasAutoHighBeam],
     ['מגביל מהירות', vehicle.hasSpeedLimiter],
     ['נעילת אלכוהול', vehicle.hasAlcoLock],
   ];
+
+  const inspectionFlags = [
+    { label: 'שינוי מבנה', value: vehicle.structureChange },
+    { label: 'גרפ"מ (נפגע קשה)', value: vehicle.hasGrapam },
+    { label: 'שינוי צבע', value: vehicle.colorChange },
+    { label: 'שינוי צמיגים', value: vehicle.tireChange },
+  ];
+  const hasAnyFlag = inspectionFlags.some(f => f.value);
 
   const recalls = vehicle.recalls || [];
   const ownershipHistory = vehicle.ownershipHistory || [];
@@ -846,6 +865,27 @@ function DetailsSection({ vehicle, setVehicle }) {
           </div>
         ))}
       </div>
+
+      {/* Test / inspection flags */}
+      {(vehicle.testKm || hasAnyFlag) && (
+        <div className="bg-surface-50 dark:bg-surface-700/40 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide">נתוני טסט ובדיקה</p>
+          {vehicle.testKm > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-surface-500">ק"מ בטסט האחרון</span>
+              <span className="text-xs font-medium text-surface-800 dark:text-surface-100">{vehicle.testKm.toLocaleString('he-IL')} ק"מ</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {inspectionFlags.map(f => (
+              <div key={f.label} className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg ${f.value ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-surface-400'}`}>
+                <span className="font-bold">{f.value ? '⚠' : '✓'}</span>
+                <span>{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Safety features */}
       <div>

@@ -5,14 +5,14 @@ const ADMIN_API = '/api/admin/users';
 
 const SERVICE_TYPE_LABELS = {
   PERIODIC: 'טיפול תקופתי', OIL: 'החלפת שמן', BRAKES: 'בלמים',
-  TIRES: 'צמיגים', BATTERY: 'מצבר', AC: 'מזגן',
-  TIMING_BELT: 'רצועת תזמון', FILTERS: 'מסננים', SUSPENSION: 'מתלים',
-  ELECTRICAL: 'חשמל', BODY_WORK: 'פח צבע', GENERAL: 'כללי', OTHER: 'אחר',
+  TIRES: 'צמיגים', BATTERY: 'מצבר', AC: 'מיזוג אוויר',
+  TIMING_BELT: 'רצועת טיימינג', FILTERS: 'פילטרים', SUSPENSION: 'מתלים',
+  ELECTRICAL: 'חשמל', BODY_WORK: 'פחחות', GENERAL: 'כללי', OTHER: 'אחר',
 };
 
 const EXPENSE_LABELS = {
   FUEL: 'דלק', PARKING: 'חניה', FINE: 'קנס', INSURANCE: 'ביטוח',
-  LICENSE: 'רישיון', TOLL: 'כביש אגרה', WASH: 'שטיפה',
+  LICENSE: 'רישיון', TOLL: 'אגרה', WASH: 'שטיפה',
   ACCESSORIES: 'אביזרים', OTHER: 'אחר',
 };
 
