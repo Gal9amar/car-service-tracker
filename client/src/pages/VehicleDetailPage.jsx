@@ -158,10 +158,10 @@ export default function VehicleDetailPage() {
               <img
                 src={`${vehicle.imageUrl}${imgCacheBust}`}
                 alt={`${vehicle.manufacturer} ${vehicle.model}`}
-                className="h-full w-full object-contain p-4 drop-shadow-md"
+                className="h-full w-full object-contain p-4 drop-shadow-md rounded-2xl"
                 onError={() => setImgError(true)}
               />
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white/60 bg-black/25 px-2 py-0.5 rounded-full pointer-events-none select-none whitespace-nowrap">
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white bg-blue-900 px-2 py-0.5 rounded-full pointer-events-none select-none whitespace-nowrap">
                 תמונה להמחשה בלבד
               </span>
               <button
