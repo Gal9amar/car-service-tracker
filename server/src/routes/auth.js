@@ -172,6 +172,7 @@ router.post('/send-code', async (req, res, next) => {
       to: email,
       subject: `${code} — קוד הכניסה שלך`,
       html: buildOtpEmailHtml({ userName: user.name, code }),
+      fromName: 'מעקב רכבים התחברות / רישום',
     });
 
     res.json({ sent: true });

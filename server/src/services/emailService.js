@@ -18,7 +18,7 @@ function createTransporter() {
   });
 }
 
-export async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, html, fromName = 'מעקב רכבים הודעות' }) {
   if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
     console.warn('⚠️  GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email');
     return;
@@ -26,7 +26,7 @@ export async function sendEmail({ to, subject, html }) {
 
   try {
     const info = await createTransporter().sendMail({
-      from: `"מעקב טיפולים לרכב" <${GMAIL_USER}>`,
+      from: `"${fromName}" <${GMAIL_USER}>`,
       to,
       subject,
       html,
