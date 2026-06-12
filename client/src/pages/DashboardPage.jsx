@@ -258,7 +258,7 @@ export default function DashboardPage() {
                   <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">טיפולים</p>
                   <div className="space-y-2">
                     {annualData.servicesList.map(s => {
-                      const typeName = SERVICE_TYPES.find(t => t.value === s.serviceType)?.label ?? s.serviceType;
+                      const typeName = SERVICE_TYPES[s.serviceType] ?? s.serviceType;
                       return (
                         <div key={s.id} className="py-2 px-3 rounded-xl" style={{ background: '#F7FAFF' }}>
                           <div className="flex items-center justify-between mb-1">
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                   <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">הוצאות</p>
                   <div className="space-y-2">
                     {annualData.expensesList.map(e => {
-                      const catName = EXPENSE_CATEGORIES.find(c => c.value === e.category)?.label ?? e.category;
+                      const catName = EXPENSE_CATEGORIES[e.category] ?? e.category;
                       return (
                         <div key={e.id} className="py-2 px-3 rounded-xl" style={{ background: '#F7FAFF' }}>
                           <div className="flex items-center justify-between mb-1">
