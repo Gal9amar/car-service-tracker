@@ -207,6 +207,7 @@ function VehicleCard({ vehicle, onEdit, onDelete }) {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -31,7 +31,7 @@ function VehiclePlate({ number }) {
 function Section({ title, icon: Icon, iconColor, iconBg, count, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-right"
@@ -139,18 +139,21 @@ export default function VehicleDetailPage() {
     <div className="space-y-3 fade-in pb-8" dir="rtl">
 
       {/* Back + PDF */}
-      <div className="flex items-center justify-between">
-        <Link to="/vehicles" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
+      <div className="flex items-center justify-between pt-1">
+        <Link to="/vehicles" className="flex items-center gap-1 text-sm font-semibold" style={{ color: '#0066CC' }}>
           <ArrowRight size={16} />חזרה לרכבים
         </Link>
         <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
-          className="flex items-center gap-1.5 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors text-surface-500 dark:text-surface-300 text-xs font-semibold px-3 py-2 rounded-xl shadow-sm">
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+          style={{ background: '#F0F4F8', color: '#556F8A' }}>
           <FileText size={14} />דוח PDF
         </a>
       </div>
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+        {/* BYD color band */}
+        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
         {/* Image */}
         <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 flex items-center justify-center p-3">
           {hasImage ? (
