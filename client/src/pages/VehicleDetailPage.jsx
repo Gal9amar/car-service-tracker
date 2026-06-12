@@ -290,21 +290,20 @@ export default function VehicleDetailPage() {
                   <p className="text-xs font-black text-emerald-600" dir="ltr">₪{marketPrice.prices.min.toLocaleString('he-IL')}</p>
                   <p className="text-[10px] text-surface-400 mt-0.5">מינימום</p>
                 </div>
-                {marketPrice.prices.median && (
-                  <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#EFF6FF' }}>
-                    <p className="text-xs font-black text-blue-600" dir="ltr">₪{marketPrice.prices.median.toLocaleString('he-IL')}</p>
-                    <p className="text-[10px] text-surface-400 mt-0.5">ממוצע</p>
-                  </div>
-                )}
+                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#EFF6FF' }}>
+                  {marketPrice.prices.avgKm
+                    ? <p className="text-xs font-black text-blue-600" dir="ltr">{marketPrice.prices.avgKm.toLocaleString('he-IL')}</p>
+                    : <p className="text-xs font-black text-blue-600">—</p>}
+                  <p className="text-[10px] text-surface-400 mt-0.5">ממוצע ק"מ</p>
+                </div>
                 <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#FFF7ED' }}>
                   <p className="text-xs font-black text-amber-600" dir="ltr">₪{marketPrice.prices.max.toLocaleString('he-IL')}</p>
                   <p className="text-[10px] text-surface-400 mt-0.5">מקסימום</p>
                 </div>
               </div>
-              <div className="flex justify-center gap-3 mt-2 text-[10px] text-surface-400 flex-wrap">
-                {marketPrice.prices.count > 0 && <span>מבוסס על {marketPrice.prices.count} מחירים</span>}
-                {marketPrice.prices.avgKm && <span>• ממוצע {marketPrice.prices.avgKm.toLocaleString('he-IL')} ק"מ</span>}
-              </div>
+              {marketPrice.prices.count > 0 && (
+                <p className="text-center text-[10px] text-surface-400 mt-2">מבוסס על {marketPrice.prices.count} מחירים</p>
+              )}
             </div>
           )}
 
