@@ -6,11 +6,9 @@ import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
-// Apply saved theme — default is always light (BYD aesthetic)
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark') {
-  document.documentElement.classList.add('dark');
-}
+// Always light mode — BYD aesthetic. Clear any old dark preference.
+localStorage.removeItem('theme');
+document.documentElement.classList.remove('dark');
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

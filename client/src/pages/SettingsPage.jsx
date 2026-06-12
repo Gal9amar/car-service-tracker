@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../services/api';
-import { User, Save, Moon, Sun, LogOut, Trash2, Mail, AlertTriangle, Check } from 'lucide-react';
+import { User, Save, LogOut, Trash2, Mail, AlertTriangle, Check } from 'lucide-react';
 
 const BYD_BAND = { background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' };
 
@@ -13,7 +13,6 @@ export default function SettingsPage() {
   const [name, setName]         = useState(user?.name || '');
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
-  const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput]             = useState('');
   const [deleting, setDeleting]                   = useState(false);
@@ -28,12 +27,6 @@ export default function SettingsPage() {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
     finally { setSaving(false); }
-  };
-
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle('dark');
-    setDarkMode(!darkMode);
-    localStorage.setItem('theme', !darkMode ? 'dark' : 'light');
   };
 
   const handleLogout = async () => { await logout(); navigate('/login'); };
@@ -94,23 +87,6 @@ export default function SettingsPage() {
             {saving ? 'שומר...' : saved ? 'נשמר!' : 'שמור שינויים'}
           </button>
         </form>
-      </div>
-
-      {/* Appearance card */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
-        <div className="h-1.5" style={BYD_BAND} />
-        <div className="p-5">
-          <h2 className="font-bold text-surface-900 dark:text-white mb-4">מראה</h2>
-          <button onClick={toggleDarkMode}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors w-full text-right"
-            style={{ background: '#F0F4F8' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: darkMode ? '#FEF3C7' : '#1E2D3D' }}>
-              {darkMode ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-surface-300" />}
-            </div>
-            <span className="font-medium text-surface-700 dark:text-surface-200">{darkMode ? 'מצב בהיר' : 'מצב כהה'}</span>
-          </button>
-        </div>
       </div>
 
       {/* Account card */}
