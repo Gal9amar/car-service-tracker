@@ -354,8 +354,10 @@ router.get('/:id/market-price', async (req, res, next) => {
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    const proxyUrl = process.env.YAD2_PROXY_URL;
-    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    // Prefer CF Worker (no required params, no secret) over IP proxy (requires model)
+    const workerUrl = process.env.YAD2_CF_WORKER_URL || process.env.YAD2_PROXY_URL;
+    if (!workerUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const usingIpProxy = !process.env.YAD2_CF_WORKER_URL && !!process.env.YAD2_PROXY_URL;
     const proxySecret = process.env.YAD2_PROXY_SECRET || 'carinfo2026';
 
     const manufacturerId = _getManufacturerId(vehicle.manufacturer);
@@ -368,11 +370,12 @@ router.get('/:id/market-price', async (req, res, next) => {
     const modelId = await _getModelId(manufacturerId, vehicle.model);
     console.log('[market-price] modelId:', modelId, 'for', vehicle.model);
 
-    const fetchProxy = async (withModel) => {
-      const p = new URLSearchParams({ manufacturer: manufacturerId, rows: '100', secret: proxySecret });
+    const fetchWorker = async (withModel) => {
+      const p = new URLSearchParams({ manufacturer: manufacturerId, rows: '100' });
       if (withModel && modelId) p.set('model', modelId);
       if (vehicle.year) p.set('year', `${vehicle.year}-${vehicle.year}`);
-      const url = `${proxyUrl}?${p}`;
+      if (usingIpProxy) p.set('secret', proxySecret);
+      const url = `${workerUrl}?${p}`;
       console.log('[market-price] url:', url.replace(proxySecret, '***'));
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
@@ -383,13 +386,13 @@ router.get('/:id/market-price', async (req, res, next) => {
       } finally { clearTimeout(t); }
     };
 
-    let data = await fetchProxy(true);
+    // Try with model filter first; fall back to manufacturer+year only
+    let data = await fetchWorker(true);
     let prices = extractMarketPrices(data);
 
-    // Fallback: manufacturer + year only (no model filter)
-    if (!prices && modelId) {
+    if (!prices) {
       console.log('[market-price] retrying without model filter');
-      data = await fetchProxy(false);
+      data = await fetchWorker(false);
       prices = extractMarketPrices(data);
     }
 
