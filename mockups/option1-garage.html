@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 1 - Garage Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0A0E1A; color: #E2E8F0; font-family: 'Heebo', sans-serif; width: 390px; min-height: 844px; overflow-x: hidden; }
+
+.header { background: linear-gradient(180deg, #0F1629 0%, #0A0E1A 100%); padding: 20px 20px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1E2A45; }
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #F59E0B, #D97706); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-text { font-size: 17px; font-weight: 700; color: #F1F5F9; }
+.logo-sub { font-size: 11px; color: #64748B; }
+.avatar { width: 36px; height: 36px; background: #1E2A45; border-radius: 50%; border: 2px solid #F59E0B33; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #F59E0B; }
+
+.content { padding: 20px; }
+
+.greeting { margin-bottom: 20px; }
+.greeting-small { font-size: 12px; color: #64748B; }
+.greeting-big { font-size: 24px; font-weight: 900; color: #F1F5F9; }
+.greeting-big span { color: #F59E0B; }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.stat-card { background: #0F1629; border: 1px solid #1E2A45; border-radius: 14px; padding: 14px 12px; }
+.stat-label { font-size: 10px; color: #64748B; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 900; color: #F59E0B; }
+.stat-unit { font-size: 10px; color: #94A3B8; }
+
+.section-label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+
+.vehicle-card { background: #0F1629; border: 1px solid #1E2A45; border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
+.vehicle-card-img { width: 100%; height: 130px; background: linear-gradient(135deg, #1E2A45 0%, #0F1629 100%); display: flex; align-items: center; justify-content: center; position: relative; }
+.car-emoji { font-size: 56px; filter: drop-shadow(0 4px 20px #F59E0B44); }
+.plate-badge { position: absolute; bottom: 10px; left: 12px; background: #F59E0B; color: #0A0E1A; font-size: 13px; font-weight: 900; padding: 4px 10px; border-radius: 6px; letter-spacing: 1px; }
+.demo-badge { position: absolute; top: 10px; right: 12px; background: #1E3A5F; color: #60A5FA; font-size: 9px; padding: 3px 7px; border-radius: 4px; }
+.vehicle-info { padding: 14px; }
+.vehicle-name { font-size: 17px; font-weight: 700; color: #F1F5F9; margin-bottom: 3px; }
+.vehicle-sub { font-size: 12px; color: #64748B; margin-bottom: 12px; }
+.vehicle-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.v-stat { background: #0A0E1A; border-radius: 10px; padding: 8px 10px; }
+.v-stat-label { font-size: 9px; color: #64748B; margin-bottom: 3px; }
+.v-stat-value { font-size: 13px; font-weight: 700; color: #E2E8F0; }
+
+.alert-card { background: #1A1008; border: 1px solid #F59E0B44; border-right: 3px solid #F59E0B; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+.alert-icon { font-size: 22px; }
+.alert-text { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 700; color: #FCD34D; }
+.alert-sub { font-size: 11px; color: #92400E; }
+
+.bottom-nav { position: fixed; bottom: 0; width: 390px; background: #0F1629; border-top: 1px solid #1E2A45; display: flex; padding: 12px 0 20px; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; color: #64748B; }
+.nav-item.active .nav-label { color: #F59E0B; }
+.nav-item.active .nav-icon { filter: drop-shadow(0 0 6px #F59E0B88); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-icon">🔧</div>
+    <div>
+      <div class="logo-text">CarTrack</div>
+      <div class="logo-sub">ניהול רכב חכם</div>
+    </div>
+  </div>
+  <div class="avatar">ג</div>
+</div>
+
+<div class="content">
+  <div class="greeting">
+    <div class="greeting-small">שלום, גל 👋</div>
+    <div class="greeting-big">לוח <span>בקרה</span></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">רכבים</div>
+      <div class="stat-value">2</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">טיפולים</div>
+      <div class="stat-value">14</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">הוצאות</div>
+      <div class="stat-value">₪<span style="font-size:16px">4.2K</span></div>
+    </div>
+  </div>
+
+  <div class="alert-card">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-text">
+      <div class="alert-title">טסט פג בעוד 12 ימים</div>
+      <div class="alert-sub">טויוטה קורולה · 12-345-67</div>
+    </div>
+    <div style="color:#F59E0B; font-size:18px">‹</div>
+  </div>
+
+  <div class="section-label">הרכבים שלי</div>
+
+  <div class="vehicle-card">
+    <div class="vehicle-card-img">
+      <div class="car-emoji">🚗</div>
+      <div class="plate-badge">12-345-67</div>
+      <div class="demo-badge">תמונה להמחשה</div>
+    </div>
+    <div class="vehicle-info">
+      <div class="vehicle-name">טויוטה קורולה</div>
+      <div class="vehicle-sub">2019 · בנזין · לבן</div>
+      <div class="vehicle-stats">
+        <div class="v-stat">
+          <div class="v-stat-label">ק"מ נוכחי</div>
+          <div class="v-stat-value">87,400</div>
+        </div>
+        <div class="v-stat">
+          <div class="v-stat-label">טיפול הבא</div>
+          <div class="v-stat-value" style="color:#F59E0B">90,000</div>
+        </div>
+        <div class="v-stat">
+          <div class="v-stat-label">טסט</div>
+          <div class="v-stat-value" style="color:#FBBF24">12 ימים</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">בית</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">🚗</div>
+    <div class="nav-label">רכבים</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">➕</div>
+    <div class="nav-label">הוסף</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">אזור אישי</div>
+  </div>
+</div>
+
+</body>
+</html>
