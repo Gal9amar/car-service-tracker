@@ -126,6 +126,47 @@ router.get('/summary', async (req, res, next) => {
 });
 
 // ============================================
+// GET /api/expenses/annual?year=2024
+// ============================================
+router.get('/annual', async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const from = new Date(year, 0, 1);
+    const to = new Date(year, 11, 31, 23, 59, 59);
+    const userId = req.user.id;
+
+    const expWhere = { vehicle: { userId }, date: { gte: from, lte: to } };
+    const svcWhere = { vehicle: { userId }, date: { gte: from, lte: to } };
+
+    const [expAgg, svcAgg, byCategory] = await Promise.all([
+      prisma.expense.aggregate({ where: expWhere, _sum: { amount: true } }),
+      prisma.service.aggregate({ where: svcWhere, _sum: { cost: true } }),
+      prisma.expense.groupBy({
+        by: ['category'],
+        where: expWhere,
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } },
+      }),
+    ]);
+
+    const expensesTotal = Number(expAgg._sum.amount) || 0;
+    const servicesTotal = Number(svcAgg._sum.cost) || 0;
+
+    res.json({
+      annual: {
+        year,
+        expenses: expensesTotal,
+        services: servicesTotal,
+        total: expensesTotal + servicesTotal,
+        byCategory: byCategory.map(c => ({ category: c.category, amount: Number(c._sum.amount) || 0 })),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================
 // POST /api/expenses
 // ============================================
 router.post('/', async (req, res, next) => {

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboard } from '../services/api';
+import { dashboard, expenses as expensesApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, AlertTriangle, Bell } from 'lucide-react';
-import { formatDate, formatNumber, SERVICE_TYPES } from '../utils/constants';
+import { ChevronLeft, ChevronRight, AlertTriangle, Bell, TrendingUp } from 'lucide-react';
+import { formatDate, formatNumber, SERVICE_TYPES, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS } from '../utils/constants';
 
 function testStatus(testExpiry) {
   if (!testExpiry) return null;
@@ -20,6 +20,10 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const currentYear = new Date().getFullYear();
+  const [annualYear, setAnnualYear] = useState(currentYear);
+  const [annualData, setAnnualData] = useState(null);
+  const [annualLoading, setAnnualLoading] = useState(true);
 
   useEffect(() => {
     dashboard.get()
@@ -27,6 +31,14 @@ export default function DashboardPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setAnnualLoading(true);
+    expensesApi.annual(annualYear)
+      .then(res => setAnnualData(res.annual))
+      .catch(console.error)
+      .finally(() => setAnnualLoading(false));
+  }, [annualYear]);
 
   if (loading) {
     return (
@@ -79,6 +91,12 @@ export default function DashboardPage() {
             <div className="rounded-xl px-4 py-2.5" style={{ background: 'rgba(255,180,0,0.22)', border: '1px solid rgba(255,180,0,0.35)', backdropFilter: 'blur(10px)' }}>
               <p className="text-lg font-black text-amber-200 leading-none">{overdueCount + upcomingCount}</p>
               <p className="text-[10px] text-amber-200/70 mt-0.5">התראות</p>
+            </div>
+          )}
+          {!annualLoading && annualData?.total > 0 && (
+            <div className="rounded-xl px-4 py-2.5" style={{ background: 'rgba(0,180,160,0.18)', border: '1px solid rgba(0,180,160,0.3)', backdropFilter: 'blur(10px)' }}>
+              <p className="text-lg font-black text-teal-200 leading-none" dir="ltr">₪{annualData.total.toLocaleString('he-IL')}</p>
+              <p className="text-[10px] text-teal-200/70 mt-0.5">{currentYear}</p>
             </div>
           )}
         </div>
@@ -158,6 +176,92 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* ── Annual Expenses KPI ── */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="font-bold text-surface-900 dark:text-white flex items-center gap-1.5">
+            <TrendingUp size={15} className="text-brand-500" /> הוצאות שנתיות
+          </h2>
+          <div dir="ltr" className="flex items-center rounded-xl overflow-hidden" style={{ background: '#F0F4F8', border: '1px solid #D1DCE8' }}>
+            <button
+              onClick={() => setAnnualYear(y => y - 1)}
+              className="w-7 h-7 flex items-center justify-center text-surface-500 hover:text-brand-600 transition-colors"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-sm font-bold text-surface-800 px-2 min-w-[44px] text-center">{annualYear}</span>
+            <button
+              onClick={() => setAnnualYear(y => y + 1)}
+              disabled={annualYear >= currentYear}
+              className="w-7 h-7 flex items-center justify-center text-surface-500 hover:text-brand-600 disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
+          {annualLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-7 h-7 border-[3px] border-surface-200 border-t-brand-500 rounded-full animate-spin" />
+            </div>
+          ) : annualData ? (
+            <div className="p-4">
+              {/* Total */}
+              <div className="text-center pb-3 border-b border-surface-100 dark:border-surface-700 mb-3">
+                <p className="text-[11px] text-surface-400 mb-0.5">סה"כ הוצאות {annualYear}</p>
+                <p className="text-3xl font-black" style={{ color: annualData.total > 0 ? '#0066CC' : '#A0B4C8' }} dir="ltr">
+                  ₪{annualData.total.toLocaleString('he-IL')}
+                </p>
+                {annualData.total > 0 && (
+                  <p className="text-[11px] text-surface-400 mt-0.5">ממוצע חודשי: ₪{Math.round(annualData.total / 12).toLocaleString('he-IL')}</p>
+                )}
+              </div>
+
+              {/* Expenses vs Services */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: '#F0F4F8' }}>
+                  <p className="text-base font-black text-surface-700 dark:text-surface-300" dir="ltr">₪{annualData.expenses.toLocaleString('he-IL')}</p>
+                  <p className="text-[10px] text-surface-400 mt-0.5">הוצאות</p>
+                </div>
+                <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: '#EFF7FF' }}>
+                  <p className="text-base font-black" style={{ color: '#0066CC' }} dir="ltr">₪{annualData.services.toLocaleString('he-IL')}</p>
+                  <p className="text-[10px] text-surface-400 mt-0.5">טיפולים</p>
+                </div>
+              </div>
+
+              {/* Category breakdown */}
+              {annualData.byCategory.length > 0 ? (
+                <div className="space-y-2.5">
+                  {annualData.byCategory.slice(0, 4).map(c => {
+                    const pct = annualData.expenses > 0 ? Math.round((c.amount / annualData.expenses) * 100) : 0;
+                    return (
+                      <div key={c.category}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-surface-600 dark:text-surface-400">
+                            {EXPENSE_CATEGORY_ICONS[c.category]} {EXPENSE_CATEGORIES[c.category]}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-surface-400">{pct}%</span>
+                            <span className="text-xs font-bold text-surface-800 dark:text-surface-200" dir="ltr">₪{c.amount.toLocaleString('he-IL')}</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-surface-100 dark:bg-surface-700">
+                          <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-sm text-surface-400 py-2">אין הוצאות ב-{annualYear}</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       {/* ── Upcoming reminders ── */}
       {upcomingCount > 0 && (
         <div className="mb-4">
@@ -189,13 +293,28 @@ export default function DashboardPage() {
 }
 
 
-function IsraeliPlate({ number }) {
+function IsraeliPlate({ number, compact }) {
   const fmt = (n) => {
     const d = (n || '').replace(/[^0-9]/g, '');
     if (d.length === 7) return `${d.slice(0,2)}-${d.slice(2,5)}-${d.slice(5)}`;
     if (d.length === 8) return `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`;
     return n;
   };
+  if (compact) {
+    return (
+      <div style={{ display:'inline-flex', alignItems:'stretch', borderRadius:'5px', border:'2px solid #1a1a1a', overflow:'hidden', height:'30px', boxShadow:'0 1px 4px rgba(0,0,0,0.15)', direction:'ltr', flexShrink:0 }}>
+        <div style={{ background:'#003399', width:'22px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1px', padding:'2px 1px', flexShrink:0 }}>
+          <span style={{ fontSize:'8px', lineHeight:1 }}>🇮🇱</span>
+          <span style={{ color:'white', fontSize:'5.5px', fontWeight:800, lineHeight:1 }}>IL</span>
+        </div>
+        <div style={{ background:'#F5C400', padding:'0 8px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <span style={{ fontSize:'13px', fontWeight:900, color:'#1a1a1a', letterSpacing:'1px', fontFamily:'monospace', whiteSpace:'nowrap' }}>
+            {fmt(number)}
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ display:'inline-flex', alignItems:'stretch', borderRadius:'7px', border:'3px solid #1a1a1a', overflow:'hidden', height:'44px', boxShadow:'0 2px 8px rgba(0,0,0,0.18)', direction:'ltr' }}>
       <div style={{ background:'#003399', width:'34px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1px', padding:'3px 2px', flexShrink:0 }}>
@@ -231,7 +350,7 @@ function VehicleCard({ vehicle }) {
       <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
 
       <div className="px-4 py-3">
-        {/* Top: car info + arrow */}
+        {/* Top: car info + compact plate + arrow */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: '#EFF7FF' }}>
@@ -244,12 +363,10 @@ function VehicleCard({ vehicle }) {
               <p className="text-xs text-surface-400">{vehicle.year}{vehicle.fuelType ? ` · ${vehicle.fuelType}` : ''}</p>
             </div>
           </div>
-          <ChevronLeft size={16} className="text-surface-300 group-hover:text-brand-500 transition-colors shrink-0" />
-        </div>
-
-        {/* Plate */}
-        <div className="flex justify-center mb-3">
-          <IsraeliPlate number={vehicle.licensePlate} />
+          <div className="flex items-center gap-2">
+            <IsraeliPlate number={vehicle.licensePlate} compact />
+            <ChevronLeft size={16} className="text-surface-300 group-hover:text-brand-500 transition-colors shrink-0" />
+          </div>
         </div>
 
         {/* Metrics row */}

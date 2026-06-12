@@ -68,6 +68,7 @@ export const expenses = {
     const qs = new URLSearchParams({ ...(vehicleId ? { vehicleId } : {}), months }).toString();
     return request(`/expenses/summary?${qs}`);
   },
+  annual: (year) => request(`/expenses/annual?year=${year}`),
   create: (data) => request('/expenses', { method: 'POST', body: data }),
   update: (id, data) => request(`/expenses/${id}`, { method: 'PUT', body: data }),
   delete: (id) => request(`/expenses/${id}`, { method: 'DELETE' }),
