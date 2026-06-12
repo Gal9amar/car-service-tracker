@@ -439,25 +439,24 @@ export function buildInsuranceExpiryEmailHtml({ userName, insurance, vehicle, da
 
 export function buildOtpEmailHtml({ userName, code, expiresMinutes = 10 }) {
   const digits = code.split('').map(d =>
-    `<span style="display:inline-block;width:48px;height:60px;line-height:60px;text-align:center;background:#FEF3C7;border:2px solid #FDE68A;border-radius:12px;font-family:'Courier New',monospace;font-size:30px;font-weight:800;color:#92400E;margin:0 3px;">${d}</span>`
+    `<span style="display:inline-block;width:38px;height:48px;line-height:48px;text-align:center;background:#FEF3C7;border:2px solid #FDE68A;border-radius:8px;font-family:'Courier New',monospace;font-size:22px;font-weight:800;color:#92400E;margin:0 2px;">${d}</span>`
   ).join('');
 
   const content = `
     ${greeting(userName || '')}
-    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 24px;line-height:1.7;">
-      קיבלנו בקשת כניסה למעקב טיפולים לרכב.<br/>
-      הזן את הקוד הבא כדי להתחבר:
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:14px;color:#44403C;margin:0 0 20px;line-height:1.6;">
+      קיבלנו בקשת כניסה למעקב רכבים.<br/>הזן את הקוד הבא כדי להתחבר:
     </p>
-    <div style="text-align:center;margin:32px 0 28px;direction:ltr;">
+    <div style="text-align:center;margin:24px 0 20px;direction:ltr;white-space:nowrap;">
       ${digits}
     </div>
-    ${infoBox(`⏱️ הקוד תקף ל-${expiresMinutes} דקות בלבד. אל תשתף אותו עם אחרים.`)}
-    ${infoBox('🔒 אם לא ביקשת להתחבר — ניתן להתעלם ממייל זה לחלוטין.', '#1e40af', '#EFF6FF', '#BFDBFE')}`;
+    ${infoBox(`⏱️ הקוד תקף ל-${expiresMinutes} דקות. אל תשתף אותו עם אחרים.`)}
+    ${infoBox('🔒 אם לא ביקשת להתחבר — התעלם ממייל זה.', '#1e40af', '#EFF6FF', '#BFDBFE')}`;
 
   return base({
     headerIcon: '🔐',
     headerTitle: 'קוד האימות שלך',
-    headerSubtitle: 'מעקב טיפולים לרכב',
+    headerSubtitle: 'מעקב רכבים',
     headerColor: '#1D6FA4',
     content,
   });
