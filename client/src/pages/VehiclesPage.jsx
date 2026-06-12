@@ -132,6 +132,7 @@ export default function VehiclesPage() {
 }
 
 function VehicleCard({ vehicle, onEdit, onDelete }) {
+  const [imgErr, setImgErr] = useState(false);
   const status = testStatus(vehicle.testExpiry);
   const testChip = {
     expired: { bg: '#FEE2E2', color: '#DC2626' },
@@ -150,7 +151,10 @@ function VehicleCard({ vehicle, onEdit, onDelete }) {
         {/* Top: icon + name + actions */}
         <div className="flex items-center gap-3 mb-3">
           <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: '#EFF7FF' }}>🚗</div>
+            {vehicle.imageUrl && !imgErr
+              ? <img src={vehicle.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" onError={() => setImgErr(true)} />
+              : <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: '#EFF7FF' }}>🚗</div>
+            }
             <div className="min-w-0">
               <p className="font-bold text-surface-900 dark:text-white text-sm leading-tight truncate">
                 {vehicle.nickname || `${vehicle.manufacturer} ${vehicle.model}`}
