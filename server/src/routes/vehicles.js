@@ -389,12 +389,14 @@ router.get('/:id/market-price', async (req, res, next) => {
     };
 
     let data = await fetchProxy(true);
+    console.log('[market-price] raw response:', JSON.stringify(data)?.slice(0, 800));
     let prices = extractMarketPrices(data);
 
     // Retry without year filter if no results
     if (!prices && vehicle.year) {
       console.log('[market-price] retrying without year filter');
       data = await fetchProxy(false);
+      console.log('[market-price] raw (no year):', JSON.stringify(data)?.slice(0, 800));
       prices = extractMarketPrices(data);
     }
 
