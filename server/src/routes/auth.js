@@ -172,7 +172,6 @@ router.post('/send-code', async (req, res, next) => {
       to: email,
       subject: `${code} — קוד הכניסה שלך`,
       html: buildOtpEmailHtml({ userName: user.name, code }),
-      fromName: 'מעקב רכבים סיסמה',
     });
 
     res.json({ sent: true });
@@ -222,7 +221,6 @@ router.post('/verify-code', async (req, res, next) => {
         to: user.email,
         subject: `ברוך הבא למעקב רכבים, ${user.name}! 🚗`,
         html: buildWelcomeEmailHtml({ userName: user.name }),
-        fromName: 'מעקב רכבים הודעות',
       }).catch(e => console.error('Welcome email failed:', e.message));
     }
   } catch (err) { next(err); }

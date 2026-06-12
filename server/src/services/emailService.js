@@ -18,7 +18,7 @@ function createTransporter() {
   });
 }
 
-export async function sendEmail({ to, subject, html, fromName = 'מעקב רכבים הודעות' }) {
+export async function sendEmail({ to, subject, html, fromName = 'מעקב רכבים' }) {
   if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
     console.warn('⚠️  GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email');
     return;
