@@ -439,15 +439,7 @@ router.get('/:id/market-price', async (req, res, next) => {
     let prices = _calcPrices(rawItems, vehicle.year);
 
     console.log('[market-price] final prices:', JSON.stringify(prices));
-    const debugItems = rawItems.slice(0, 15).map(item => ({
-      manufacturer: item.manufacturer?.text,
-      model: item.model?.text,
-      subModel: item.subModel?.text,
-      year: item.vehicleDates?.yearOfProduction,
-      price: item.price,
-      km: item.km,
-    }));
-    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, _debug: debugItems, _source: source } });
+    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
   } catch (err) { next(err); }
 });
 

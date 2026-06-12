@@ -311,18 +311,6 @@ export default function VehicleDetailPage() {
             <p className="text-center text-sm text-surface-400 py-2 mt-2">לא נמצאו תוצאות ביד2</p>
           )}
 
-          {marketPrice?._debug?.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
-              <p className="text-[10px] font-bold text-surface-400 mb-2">נתונים גולמיים ({marketPrice._debug.length} רכבים) · מקור: {marketPrice._source}</p>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {marketPrice._debug.map((item, i) => (
-                  <div key={i} className="text-[10px] text-surface-500 px-2 py-1 rounded bg-surface-50 dark:bg-surface-700/50" dir="ltr">
-                    {item.manufacturer} {item.model} {item.subModel} | {item.year} | ₪{item.price?.toLocaleString()} | {item.km?.toLocaleString()} km
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
