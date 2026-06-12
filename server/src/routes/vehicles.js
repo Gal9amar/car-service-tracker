@@ -421,25 +421,10 @@ router.get('/:id/market-price', async (req, res, next) => {
 
     console.log(`[market-price] final source=${source}, ${rawItems.length} items`);
 
-    // Log first 3 items to see manufacturer/model structure
-    rawItems.slice(0, 3).forEach((i, idx) => {
-      console.log(`[market-price] item[${idx}]:`, JSON.stringify({
-        mfr: i.manufacturer, model: i.model, year: i.vehicleDates?.yearOfProduction, price: i.price
-      }));
-    });
-
-    // Filter to exact manufacturer+model matches only
-    const exactItems = rawItems.filter(i =>
-      Number(i.manufacturer?.id ?? i.manufacturer ?? -1) === Number(manufacturerId) &&
-      Number(i.model?.id ?? i.model ?? -1) === Number(modelId)
-    );
-    console.log(`[market-price] exact match (mfr=${manufacturerId}, model=${modelId}): ${exactItems.length} items`);
-    const itemsForCalc = exactItems.length >= 3 ? exactItems : rawItems;
-
-    let prices = _calcPrices(itemsForCalc, vehicle.year);
+    let prices = _calcPrices(rawItems, vehicle.year);
 
     console.log('[market-price] final prices:', JSON.stringify(prices));
-    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
+    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, source: 'similar' } });
   } catch (err) { next(err); }
 });
 

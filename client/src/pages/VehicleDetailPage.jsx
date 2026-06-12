@@ -302,7 +302,7 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
               {marketPrice.prices.count > 0 && (
-                <p className="text-center text-[10px] text-surface-400 mt-2">מבוסס על {marketPrice.prices.count} מחירים</p>
+                <p className="text-center text-[10px] text-surface-400 mt-2">מבוסס על {marketPrice.prices.count} מחירים · רכבים ממקטע דומה</p>
               )}
             </div>
           )}
