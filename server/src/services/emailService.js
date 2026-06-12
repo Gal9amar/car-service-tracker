@@ -435,6 +435,67 @@ export function buildInsuranceExpiryEmailHtml({ userName, insurance, vehicle, da
   });
 }
 
+// ─── ברוך הבא — רישום ראשוני ──────────────────────────────────────────────────
+
+export function buildWelcomeEmailHtml({ userName }) {
+  const features = [
+    ['🚗', 'זיהוי רכב אוטומטי', 'הוסף רכב לפי מספר לוחית — הפרטים מגיעים אוטומטית ממשרד הרישוי'],
+    ['🔧', 'היסטוריית טיפולים', 'עקוב אחר כל טיפול: שמן, בלמים, צמיגים, טסט ועוד 13 סוגים'],
+    ['💰', 'מעקב הוצאות', 'דלק, חניה, ביטוח, קנסות — הכל במקום אחד עם סטטיסטיקות'],
+    ['🔔', 'תזכורות חכמות', 'קבל התראה לפי תאריך וקילומטראז׳ לפני שאתה שוכח'],
+    ['🛡️', 'ניהול ביטוחים', 'עקוב אחר ביטוח חובה, צד ג׳ ומקיף — עם התראה לפני פקיעה'],
+    ['📄', 'ייצוא PDF', 'הפק דוח מלא של היסטוריית הרכב בלחיצה אחת'],
+  ];
+
+  const featuresHtml = features.map(([icon, title, desc]) => `
+    <tr>
+      <td style="padding:10px 0;vertical-align:top;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width:44px;vertical-align:top;padding-top:2px;">
+              <div style="width:36px;height:36px;background:#FEF3C7;border-radius:8px;text-align:center;line-height:36px;font-size:18px;">${icon}</div>
+            </td>
+            <td style="vertical-align:top;padding-right:10px;">
+              <p style="font-family:'Heebo',Arial,sans-serif;font-size:14px;font-weight:700;color:#1C1917;margin:0 0 2px;">${title}</p>
+              <p style="font-family:'Heebo',Arial,sans-serif;font-size:13px;color:#57534E;margin:0;line-height:1.5;">${desc}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr><td style="height:2px;"></td></tr>`).join('');
+
+  const content = `
+    ${greeting(userName)}
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 24px;line-height:1.7;">
+      שמחים שהצטרפת! <strong style="color:#92400E;">מעקב רכבים</strong> הוא הכלי החכם לניהול כל מה שקשור לרכב שלך — טיפולים, הוצאות, ביטוחים ותזכורות — הכל במקום אחד.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #FDE8C8;border-radius:14px;overflow:hidden;margin-bottom:24px;">
+      <thead>
+        <tr style="background:#FEF3C7;">
+          <th style="padding:12px 16px;text-align:right;font-family:'Heebo',Arial,sans-serif;font-size:12px;font-weight:700;color:#92400E;letter-spacing:0.5px;">מה תוכל לעשות באפליקציה</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:12px 16px 4px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            ${featuresHtml}
+          </table>
+        </td></tr>
+      </tbody>
+    </table>
+    ${infoBox('💡 <strong>טיפ ראשון:</strong> התחל בהוספת הרכב שלך — הקלד את מספר הלוחית וכל הפרטים יתמלאו אוטומטית!', '#166534', '#F0FDF4', '#BBF7D0')}`;
+
+  return base({
+    headerIcon: '🎉',
+    headerTitle: `ברוך הבא, ${userName || ''}!`,
+    headerSubtitle: 'אנחנו שמחים שהצטרפת למשפחה',
+    headerColor: '#B45309',
+    content,
+    footerNote: 'קיבלת מייל זה כי נרשמת למעקב רכבים.',
+  });
+}
+
 // ─── OTP / קוד אימות ──────────────────────────────────────────────────────────
 
 export function buildOtpEmailHtml({ userName, code, expiresMinutes = 10 }) {

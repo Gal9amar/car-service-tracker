@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie, authenticate } from '../middleware/auth.js';
-import { sendEmail, buildOtpEmailHtml } from '../services/emailService.js';
+import { sendEmail, buildOtpEmailHtml, buildWelcomeEmailHtml } from '../services/emailService.js';
 
 const router = Router();
 
@@ -201,6 +201,8 @@ router.post('/verify-code', async (req, res, next) => {
       return res.status(401).json({ error: 'הקוד פג תוקף. שלח קוד חדש.' });
     }
 
+    const isNewUser = !user.isVerified;
+
     await prisma.user.update({
       where: { id: user.id },
       data: { verifyCode: null, verifyExpires: null, isVerified: true },
@@ -213,6 +215,16 @@ router.post('/verify-code', async (req, res, next) => {
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
       token,
     });
+
+    // מייל ברכה למשתמש חדש — fire and forget
+    if (isNewUser) {
+      sendEmail({
+        to: user.email,
+        subject: `ברוך הבא למעקב רכבים, ${user.name}! 🚗`,
+        html: buildWelcomeEmailHtml({ userName: user.name }),
+        fromName: 'מעקב רכבים הודעות',
+      }).catch(e => console.error('Welcome email failed:', e.message));
+    }
   } catch (err) { next(err); }
 });
 
