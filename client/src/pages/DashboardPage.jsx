@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
   const overdueCount = data.overdueReminders?.length || 0;
   const upcomingCount = data.upcomingReminders?.length || 0;
-  const totalServices = data.vehicles.reduce((s, v) => s + (v._count?.services || 0), 0);
+  const totalServices = data.vehicles.reduce((s, v) => s + (v.serviceCount || 0), 0);
 
   const todayStr = new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
 
