@@ -412,22 +412,29 @@ router.get('/:id/market-price', async (req, res, next) => {
     // Try feed (exact) → lookalike (similar) as fallback
     let data = await fetchFeed(true);
     let rawItems = _extractItems(data);
+    let source = 'feed+year';
+    console.log(`[market-price] feed+year: ${rawItems.length} items, data keys: ${JSON.stringify(Object.keys(data||{}))}`);
+
     if (!rawItems.length) {
-      console.log('[market-price] feed empty, falling back to lookalike');
+      source = 'lookalike+year';
       data = await fetchLookalike(true);
       rawItems = _extractItems(data);
+      console.log(`[market-price] lookalike+year: ${rawItems.length} items`);
     }
-    // Retry without year if still empty
     if (!rawItems.length && vehicle.year) {
+      source = 'feed';
       data = await fetchFeed(false);
       rawItems = _extractItems(data);
-      if (!rawItems.length) {
-        data = await fetchLookalike(false);
-        rawItems = _extractItems(data);
-      }
+      console.log(`[market-price] feed (no year): ${rawItems.length} items`);
+    }
+    if (!rawItems.length && vehicle.year) {
+      source = 'lookalike';
+      data = await fetchLookalike(false);
+      rawItems = _extractItems(data);
+      console.log(`[market-price] lookalike (no year): ${rawItems.length} items`);
     }
 
-    console.log(`[market-price] got ${rawItems.length} items`);
+    console.log(`[market-price] final source=${source}, ${rawItems.length} items`);
 
     let prices = _calcPrices(rawItems, vehicle.year);
 
@@ -440,7 +447,7 @@ router.get('/:id/market-price', async (req, res, next) => {
       price: item.price,
       km: item.km,
     }));
-    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, _debug: debugItems } });
+    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, _debug: debugItems, _source: source } });
   } catch (err) { next(err); }
 });
 

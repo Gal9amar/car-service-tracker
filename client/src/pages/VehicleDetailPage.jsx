@@ -313,7 +313,7 @@ export default function VehicleDetailPage() {
 
           {marketPrice?._debug?.length > 0 && (
             <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
-              <p className="text-[10px] font-bold text-surface-400 mb-2">נתונים גולמיים ({marketPrice._debug.length} רכבים)</p>
+              <p className="text-[10px] font-bold text-surface-400 mb-2">נתונים גולמיים ({marketPrice._debug.length} רכבים) · מקור: {marketPrice._source}</p>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {marketPrice._debug.map((item, i) => (
                   <div key={i} className="text-[10px] text-surface-500 px-2 py-1 rounded bg-surface-50 dark:bg-surface-700/50" dir="ltr">
