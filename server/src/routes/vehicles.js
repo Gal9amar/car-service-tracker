@@ -389,14 +389,12 @@ router.get('/:id/market-price', async (req, res, next) => {
     };
 
     let data = await fetchProxy(true);
-    console.log('[market-price] raw response:', JSON.stringify(data)?.slice(0, 800));
     let prices = extractMarketPrices(data);
 
     // Retry without year filter if no results
     if (!prices && vehicle.year) {
       console.log('[market-price] retrying without year filter');
       data = await fetchProxy(false);
-      console.log('[market-price] raw (no year):', JSON.stringify(data)?.slice(0, 800));
       prices = extractMarketPrices(data);
     }
 
@@ -408,9 +406,13 @@ router.get('/:id/market-price', async (req, res, next) => {
 function extractMarketPrices(data) {
   if (!data) return null;
   try {
-    // Raw Yad2 API response: { data: { items: [...] } }
-    const items = data?.data?.items;
-    if (Array.isArray(items) && items.length > 0) {
+    // Proxy returns { data: [...] } — flat array
+    const items = Array.isArray(data?.data) ? data.data
+      : Array.isArray(data?.data?.items)    ? data.data.items
+      : Array.isArray(data?.items)          ? data.items
+      : null;
+
+    if (items && items.length > 0) {
       const priceArr = items
         .map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0))
         .filter(p => p > 0);
@@ -423,10 +425,9 @@ function extractMarketPrices(data) {
         min:    sorted[0],
         max:    sorted[sorted.length - 1],
         count:  priceArr.length,
-        total:  items.length,
       };
     }
-    // Fallback: flat stats
+    // Fallback: pre-computed stats
     const avg = Number(data?.data?.price_average ?? data?.price_average ?? 0);
     const min = Number(data?.data?.price_min    ?? data?.price_min    ?? 0);
     const max = Number(data?.data?.price_max    ?? data?.price_max    ?? 0);
