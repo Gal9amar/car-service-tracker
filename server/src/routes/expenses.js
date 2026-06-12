@@ -2,9 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { sendEmail, buildLargeExpenseEmailHtml } from '../services/emailService.js';
-
-const LARGE_EXPENSE_THRESHOLD = 500;
 
 const router = Router();
 router.use(authenticate);
@@ -143,25 +140,6 @@ router.post('/', async (req, res, next) => {
     const expense = await prisma.expense.create({
       data: { ...data, date: new Date(data.date) },
     });
-
-    // שלח מייל אם הוצאה גדולה — לפני res.json כי serverless
-    if (Number(data.amount) >= LARGE_EXPENSE_THRESHOLD) {
-      try {
-        const user = await prisma.user.findUnique({
-          where: { id: req.user.id },
-          select: { email: true, name: true },
-        });
-        if (user?.email) {
-          await sendEmail({
-            to: user.email,
-            subject: `💸 הוצאה גבוהה: ₪${Number(data.amount).toLocaleString('he-IL')} — ${vehicle.manufacturer} ${vehicle.model}`,
-            html: buildLargeExpenseEmailHtml({ userName: user.name, expense, vehicle }),
-          });
-        }
-      } catch (emailErr) {
-        console.error('Large expense email failed:', emailErr.message);
-      }
-    }
 
     res.status(201).json({ expense });
   } catch (err) {

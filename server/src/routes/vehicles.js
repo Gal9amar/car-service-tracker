@@ -3,7 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { lookupVehicle } from '../services/vehicleLookup.js';
-import { sendEmail, buildNewVehicleEmailHtml, buildMileageReminderEmailHtml } from '../services/emailService.js';
+import { sendEmail, buildNewVehicleEmailHtml } from '../services/emailService.js';
 import { fetchCarImage } from '../services/carImageService.js';
 
 const router = Router();
@@ -283,42 +283,6 @@ router.put('/:id', async (req, res, next) => {
       imageUrl: z.string().url().optional().nullable(),
     }).parse(req.body);
     const vehicle = await prisma.vehicle.update({ where: { id: req.params.id }, data });
-
-    // בדוק תזכורות קילומטראז' מתקרבות — לפני res.json כי serverless
-    if (data.currentMileage != null && data.currentMileage !== existing.currentMileage) {
-      try {
-        const MILEAGE_ALERT_KM = 500;
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const approaching = await prisma.reminder.findMany({
-          where: {
-            vehicleId: req.params.id,
-            isActive: true,
-            dueMileage: { not: null, lte: data.currentMileage + MILEAGE_ALERT_KM, gt: data.currentMileage },
-            OR: [{ lastNotified: null }, { lastNotified: { lt: sevenDaysAgo } }],
-          },
-        });
-        if (approaching.length > 0) {
-          const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
-            select: { email: true, name: true },
-          });
-          if (user?.email) {
-            await sendEmail({
-              to: user.email,
-              subject: `🏁 תזכורת קילומטראז' מתקרבת — ${vehicle.manufacturer} ${vehicle.model}`,
-              html: buildMileageReminderEmailHtml({ userName: user.name, reminders: approaching, currentMileage: data.currentMileage, vehicle }),
-            });
-            await prisma.reminder.updateMany({
-              where: { id: { in: approaching.map(r => r.id) } },
-              data: { lastNotified: new Date() },
-            });
-          }
-        }
-      } catch (emailErr) {
-        console.error('Mileage reminder email failed:', emailErr.message);
-      }
-    }
-
     res.json({ vehicle: parseVehicle(vehicle) });
   } catch (err) { next(err); }
 });
