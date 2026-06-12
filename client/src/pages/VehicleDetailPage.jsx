@@ -152,15 +152,17 @@ export default function VehicleDetailPage() {
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-sm overflow-hidden">
         {/* Image */}
-        <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 h-48 flex items-center justify-center">
+        <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 flex items-center justify-center p-3">
           {hasImage ? (
             <>
-              <img
-                src={`${vehicle.imageUrl}${imgCacheBust}`}
-                alt={`${vehicle.manufacturer} ${vehicle.model}`}
-                className="h-full w-full object-contain p-4 drop-shadow-md rounded-2xl"
-                onError={() => setImgError(true)}
-              />
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden">
+                <img
+                  src={`${vehicle.imageUrl}${imgCacheBust}`}
+                  alt={`${vehicle.manufacturer} ${vehicle.model}`}
+                  className="h-full w-full object-contain p-3 drop-shadow-md"
+                  onError={() => setImgError(true)}
+                />
+              </div>
               <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white bg-blue-900 px-2 py-0.5 rounded-full pointer-events-none select-none whitespace-nowrap">
                 תמונה להמחשה בלבד
               </span>
