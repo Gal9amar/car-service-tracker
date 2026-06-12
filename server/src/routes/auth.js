@@ -207,6 +207,17 @@ router.post('/verify-code', async (req, res, next) => {
       data: { verifyCode: null, verifyExpires: null, isVerified: true },
     });
 
+    // מייל ברכה למשתמש חדש — לפני ה-response (serverless לא מריץ קוד אחרי res.json)
+    if (isNewUser) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `ברוך הבא למעקב רכבים, ${user.name}! 🚗`,
+          html: buildWelcomeEmailHtml({ userName: user.name }),
+        });
+      } catch (e) { console.error('Welcome email failed:', e.message); }
+    }
+
     const token = generateToken(user.id);
     setTokenCookie(res, token);
 
@@ -214,15 +225,6 @@ router.post('/verify-code', async (req, res, next) => {
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
       token,
     });
-
-    // מייל ברכה למשתמש חדש — fire and forget
-    if (isNewUser) {
-      sendEmail({
-        to: user.email,
-        subject: `ברוך הבא למעקב רכבים, ${user.name}! 🚗`,
-        html: buildWelcomeEmailHtml({ userName: user.name }),
-      }).catch(e => console.error('Welcome email failed:', e.message));
-    }
   } catch (err) { next(err); }
 });
 
