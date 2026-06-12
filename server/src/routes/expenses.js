@@ -151,7 +151,7 @@ router.get('/annual', async (req, res, next) => {
         where: svcWhere,
         select: {
           id: true,
-          type: true,
+          serviceType: true,
           cost: true,
           date: true,
           vehicle: { select: { licensePlate: true, manufacturer: true, model: true } },
@@ -184,7 +184,7 @@ router.get('/annual', async (req, res, next) => {
         byCategory: byCategory.map(c => ({ category: c.category, amount: Number(c._sum.amount) || 0 })),
         servicesList: servicesList.map(s => ({
           id: s.id,
-          type: s.type,
+          serviceType: s.serviceType,
           cost: Number(s.cost) || 0,
           date: s.date,
           licensePlate: s.vehicle.licensePlate,

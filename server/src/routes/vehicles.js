@@ -278,9 +278,22 @@ router.get('/:id/market-price', async (req, res, next) => {
       return p;
     };
 
+    const fetchProxy = async (params) => {
+      const url = `${proxyUrl}?${params}`;
+      const r = await fetch(url, {
+        headers: { 'X-Secret': proxySecret, 'Authorization': proxySecret },
+      });
+      if (!r.ok) {
+        const body = await r.text().catch(() => '');
+        console.log('[market-price] proxy status:', r.status, body.slice(0, 300));
+        return null;
+      }
+      return r.json();
+    };
+
     const [lookalike, feed] = await Promise.all([
-      fetch(`${proxyUrl}?${buildParams('lookalike')}`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${proxyUrl}?${buildParams('feed', '1')}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetchProxy(buildParams('lookalike')).catch(e => { console.log('[market-price] fetch err:', e.message); return null; }),
+      fetchProxy(buildParams('feed', '1')).catch(e => null),
     ]);
 
     console.log('[market-price] lookalike raw:', JSON.stringify(lookalike)?.slice(0, 500));
