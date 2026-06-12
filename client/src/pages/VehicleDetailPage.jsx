@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicles as vehiclesApi, services as servicesApi, expenses as expensesApi, reminders as remindersApi, reports, insurances as insurancesApi } from '../services/api';
-import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield, ClipboardCheck, ImageOff, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { ArrowRight, Wrench, Receipt, Bell, FileText, Plus, X, Calendar, Gauge, Fuel, Palette, Loader2, Pencil, Trash2, RefreshCw, Shield, ClipboardCheck, ImageOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { SERVICE_TYPES, SERVICE_TYPE_ICONS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_ICONS, REMINDER_TYPES, formatCurrency, formatDate, formatNumber } from '../utils/constants';
 
 function VehiclePlate({ number }) {
@@ -93,25 +93,12 @@ export default function VehicleDetailPage() {
   const [imgToast, setImgToast] = useState(null);
   const [imgCacheBust, setImgCacheBust] = useState('');
 
-  const [marketPrice, setMarketPrice] = useState(null);
-  const [marketLoading, setMarketLoading] = useState(false);
-  const [marketFetched, setMarketFetched] = useState(false);
-
   const fetchVehicle = useCallback(() => {
     setImgError(false);
     vehiclesApi.get(id).then(res => setVehicle(res.vehicle)).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => { fetchVehicle(); }, [fetchVehicle]);
-
-  const fetchMarketPrice = () => {
-    if (marketLoading || marketFetched) return;
-    setMarketLoading(true);
-    vehiclesApi.marketPrice(id)
-      .then(res => setMarketPrice(res.marketPrice))
-      .catch(console.error)
-      .finally(() => { setMarketLoading(false); setMarketFetched(true); });
-  };
 
   const showImgToast = (type, msg) => {
     setImgToast({ type, msg });
@@ -230,87 +217,6 @@ export default function VehicleDetailPage() {
           <div className="flex justify-center">
             <VehiclePlate number={vehicle.licensePlate} />
           </div>
-        </div>
-      </div>
-
-      {/* ── Market Price (Yad2) ─────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
-        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
-        <div className="px-4 py-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-teal-50 dark:bg-teal-900/30 flex-shrink-0">
-                <TrendingUp size={18} className="text-teal-600" />
-              </div>
-              <div>
-                <p className="font-bold text-surface-800 dark:text-white text-sm">מחיר שוק יד2</p>
-                <p className="text-[11px] text-surface-400">
-                  {marketPrice
-                    ? `${marketPrice.manufacturer} ${marketPrice.model} ${marketPrice.year}`
-                    : 'לחץ לבדיקת מחיר ממוצע'}
-                </p>
-              </div>
-            </div>
-            {!marketFetched ? (
-              <button
-                onClick={fetchMarketPrice}
-                disabled={marketLoading}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all active:scale-95 text-white"
-                style={{ background: 'linear-gradient(135deg, #0066CC 0%, #00B4A0 100%)', boxShadow: '0 3px 10px rgba(0,102,204,0.3)' }}
-              >
-                {marketLoading
-                  ? <><Loader2 size={13} className="animate-spin" />טוען...</>
-                  : <>בדוק מחיר</>}
-              </button>
-            ) : marketPrice?.prices ? (
-              <button
-                onClick={() => { setMarketFetched(false); setMarketPrice(null); }}
-                className="text-xs text-surface-400 hover:text-surface-600 px-2 py-1 rounded-lg hover:bg-surface-50"
-              >
-                <RefreshCw size={13} />
-              </button>
-            ) : null}
-          </div>
-
-          {marketPrice?.prices && (
-            <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
-              {/* Average price — big */}
-              <div className="text-center mb-3">
-                <p className="text-[11px] text-surface-400 mb-0.5">מחיר ממוצע</p>
-                <p className="text-2xl font-black" style={{ color: '#0066CC' }} dir="ltr">
-                  ₪{marketPrice.prices.avg.toLocaleString('he-IL')}
-                </p>
-                {marketPrice.totalOnRoad > 0 && (
-                  <p className="text-[11px] text-surface-400 mt-0.5">{marketPrice.totalOnRoad} מכוניות למכירה ביד2</p>
-                )}
-              </div>
-              {/* Min / Median / Max */}
-              <div className="grid grid-cols-3 gap-1.5">
-                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#F0FFF4' }}>
-                  <p className="text-xs font-black text-emerald-600" dir="ltr">₪{marketPrice.prices.min.toLocaleString('he-IL')}</p>
-                  <p className="text-[10px] text-surface-400 mt-0.5">מינימום</p>
-                </div>
-                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#EFF6FF' }}>
-                  {marketPrice.prices.avgKm
-                    ? <p className="text-xs font-black text-blue-600" dir="ltr">{marketPrice.prices.avgKm.toLocaleString('he-IL')}</p>
-                    : <p className="text-xs font-black text-blue-600">—</p>}
-                  <p className="text-[10px] text-surface-400 mt-0.5">ממוצע ק"מ</p>
-                </div>
-                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#FFF7ED' }}>
-                  <p className="text-xs font-black text-amber-600" dir="ltr">₪{marketPrice.prices.max.toLocaleString('he-IL')}</p>
-                  <p className="text-[10px] text-surface-400 mt-0.5">מקסימום</p>
-                </div>
-              </div>
-              {marketPrice.prices.count > 0 && (
-                <p className="text-center text-[10px] text-surface-400 mt-2">מבוסס על {marketPrice.prices.count} מחירים · רכבים ממקטע דומה</p>
-              )}
-            </div>
-          )}
-
-          {marketFetched && !marketPrice?.prices && (
-            <p className="text-center text-sm text-surface-400 py-2 mt-2">לא נמצאו תוצאות ביד2</p>
-          )}
-
         </div>
       </div>
 
