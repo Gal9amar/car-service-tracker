@@ -389,6 +389,21 @@ router.get('/:id/market-price', async (req, res, next) => {
     };
 
     let data = await fetchProxy(true);
+
+    // Log each item returned for verification
+    const rawItems = Array.isArray(data?.data) ? data.data : [];
+    console.log(`[market-price] got ${rawItems.length} items from proxy`);
+    rawItems.slice(0, 10).forEach((item, i) => {
+      console.log(`[market-price] item[${i}]:`,
+        `manufacturer=${item.manufacturer?.text}(${item.manufacturer?.id})`,
+        `model=${item.model?.text}(${item.model?.id})`,
+        `subModel=${item.subModel?.text}`,
+        `year=${item.vehicleDates?.yearOfProduction}`,
+        `price=${item.price}`,
+        `km=${item.km}`
+      );
+    });
+
     let prices = extractMarketPrices(data, vehicle.year);
 
     // Retry without year filter if no results
@@ -398,7 +413,7 @@ router.get('/:id/market-price', async (req, res, next) => {
       prices = extractMarketPrices(data, vehicle.year);
     }
 
-    console.log('[market-price] prices:', JSON.stringify(prices));
+    console.log('[market-price] final prices:', JSON.stringify(prices));
     res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
   } catch (err) { next(err); }
 });
