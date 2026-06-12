@@ -376,67 +376,60 @@ router.get('/:id/market-price', async (req, res, next) => {
 
     const yearRange = vehicle.year ? `${vehicle.year}-${vehicle.year}` : null;
 
-    // Fetch exact listings via CF Worker feed endpoint (returns actual ads for this model)
-    const fetchFeed = async (withYear) => {
-      if (!workerUrl) return null;
-      const p = new URLSearchParams({ type: 'feed', manufacturer: manufacturerId, model: modelId, rows: '100' });
+    // Fetch via IP proxy — supports both feed (type=feed) and lookalike
+    const fetchProxy = async (type, withYear) => {
+      if (!proxyUrl) return null;
+      const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
+      if (type === 'feed') p.set('type', 'feed');
       if (withYear && yearRange) p.set('year', yearRange);
-      const url = `${workerUrl}?${p}`;
-      console.log('[market-price] feed url:', url);
+      const url = `${proxyUrl}?${p}`;
+      console.log(`[market-price] proxy ${type}${withYear ? '+year' : ''} url:`, url.replace(proxySecret, '***'));
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
       try {
         const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) { const b = await r.text().catch(() => ''); console.warn('[market-price] feed:', r.status, b.slice(0, 200)); return null; }
+        if (!r.ok) { const b = await r.text().catch(() => ''); console.warn(`[market-price] proxy ${type}:`, r.status, b.slice(0, 200)); return null; }
         return r.json();
-      } catch (e) { console.warn('[market-price] feed err:', e.message); return null; }
+      } catch (e) { console.warn(`[market-price] proxy ${type} err:`, e.message); return null; }
       finally { clearTimeout(t); }
     };
 
-    // Fallback: lookalike via IP proxy
-    const fetchLookalike = async (withYear) => {
-      if (!proxyUrl) return null;
-      const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
-      if (withYear && yearRange) p.set('year', yearRange);
-      const url = `${proxyUrl}?${p}`;
-      console.log('[market-price] lookalike url:', url.replace(proxySecret, '***'));
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 12000);
-      try {
-        const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] lookalike:', r.status, b.slice(0, 200)); return null; }
-        return r.json();
-      } finally { clearTimeout(t); }
-    };
-
-    // Try feed (exact) → lookalike (similar) as fallback
-    let data = await fetchFeed(true);
+    // Try: proxy feed+year → proxy feed → proxy lookalike+year → proxy lookalike
+    let data = await fetchProxy('feed', true);
     let rawItems = _extractItems(data);
-    let source = 'feed+year';
-    console.log(`[market-price] feed+year: ${rawItems.length} items, data keys: ${JSON.stringify(Object.keys(data||{}))}`);
+    let source = 'proxy-feed+year';
+    console.log(`[market-price] proxy feed+year: ${rawItems.length} items`);
 
     if (!rawItems.length) {
-      source = 'lookalike+year';
-      data = await fetchLookalike(true);
+      source = 'proxy-feed';
+      data = await fetchProxy('feed', false);
       rawItems = _extractItems(data);
-      console.log(`[market-price] lookalike+year: ${rawItems.length} items`);
+      console.log(`[market-price] proxy feed: ${rawItems.length} items`);
     }
-    if (!rawItems.length && vehicle.year) {
-      source = 'feed';
-      data = await fetchFeed(false);
+    if (!rawItems.length) {
+      source = 'proxy-lookalike+year';
+      data = await fetchProxy('lookalike', true);
       rawItems = _extractItems(data);
-      console.log(`[market-price] feed (no year): ${rawItems.length} items`);
+      console.log(`[market-price] proxy lookalike+year: ${rawItems.length} items`);
     }
-    if (!rawItems.length && vehicle.year) {
-      source = 'lookalike';
-      data = await fetchLookalike(false);
+    if (!rawItems.length) {
+      source = 'proxy-lookalike';
+      data = await fetchProxy('lookalike', false);
       rawItems = _extractItems(data);
-      console.log(`[market-price] lookalike (no year): ${rawItems.length} items`);
+      console.log(`[market-price] proxy lookalike: ${rawItems.length} items`);
     }
 
     console.log(`[market-price] final source=${source}, ${rawItems.length} items`);
 
-    let prices = _calcPrices(rawItems, vehicle.year);
+    // Filter to exact manufacturer+model matches only
+    const exactItems = rawItems.filter(i =>
+      Number(i.manufacturer?.id ?? i.manufacturer ?? -1) === Number(manufacturerId) &&
+      Number(i.model?.id ?? i.model ?? -1) === Number(modelId)
+    );
+    console.log(`[market-price] exact match (mfr=${manufacturerId}, model=${modelId}): ${exactItems.length} items`);
+    const itemsForCalc = exactItems.length >= 3 ? exactItems : rawItems;
+
+    let prices = _calcPrices(itemsForCalc, vehicle.year);
 
     console.log('[market-price] final prices:', JSON.stringify(prices));
     res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
