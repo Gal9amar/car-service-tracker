@@ -93,12 +93,6 @@ export default function DashboardPage() {
               <p className="text-[10px] text-amber-200/70 mt-0.5">התראות</p>
             </div>
           )}
-          {!annualLoading && annualData?.total > 0 && (
-            <div className="rounded-xl px-4 py-2.5" style={{ background: 'rgba(0,180,160,0.18)', border: '1px solid rgba(0,180,160,0.3)', backdropFilter: 'blur(10px)' }}>
-              <p className="text-lg font-black text-teal-200 leading-none" dir="ltr">₪{annualData.total.toLocaleString('he-IL')}</p>
-              <p className="text-[10px] text-teal-200/70 mt-0.5">{currentYear}</p>
-            </div>
-          )}
         </div>
       </div>
 
@@ -254,9 +248,9 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
-              ) : (
-                <p className="text-center text-sm text-surface-400 py-2">אין הוצאות ב-{annualYear}</p>
-              )}
+              ) : annualData.total === 0 ? (
+                <p className="text-center text-sm text-surface-400 py-2">אין נתונים ב-{annualYear}</p>
+              ) : null}
             </div>
           ) : null}
         </div>
