@@ -355,8 +355,9 @@ router.get('/:id/market-price', async (req, res, next) => {
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
     // Use IP proxy — accepts manufacturer+model+year+rows+secret
-    const proxyUrl = process.env.YAD2_PROXY_URL;
-    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const workerUrl = process.env.YAD2_CF_WORKER_URL;
+    const proxyUrl  = process.env.YAD2_PROXY_URL;
+    if (!workerUrl && !proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
     const proxySecret = process.env.YAD2_PROXY_SECRET || 'carinfo2026';
 
     const manufacturerId = _getManufacturerId(vehicle.manufacturer);
@@ -373,45 +374,62 @@ router.get('/:id/market-price', async (req, res, next) => {
       return res.json({ marketPrice: { prices: null, totalOnRoad: 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
     }
 
-    // IP proxy requires: model (numeric), secret — manufacturer/year/rows are optional
-    const fetchProxy = async (withYear) => {
-      const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
-      if (withYear && vehicle.year) p.set('year', `${vehicle.year}-${vehicle.year}`);
-      const url = `${proxyUrl}?${p}`;
-      console.log('[market-price] url:', url.replace(proxySecret, '***'));
+    const yearRange = vehicle.year ? `${vehicle.year}-${vehicle.year}` : null;
+
+    // Fetch exact listings via CF Worker feed endpoint (returns actual ads for this model)
+    const fetchFeed = async (withYear) => {
+      if (!workerUrl) return null;
+      const p = new URLSearchParams({ type: 'feed', manufacturer: manufacturerId, model: modelId, rows: '100' });
+      if (withYear && yearRange) p.set('year', yearRange);
+      const url = `${workerUrl}?${p}`;
+      console.log('[market-price] feed url:', url);
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
       try {
         const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] proxy:', r.status, b.slice(0, 200)); return null; }
+        if (!r.ok) { const b = await r.text().catch(() => ''); console.warn('[market-price] feed:', r.status, b.slice(0, 200)); return null; }
+        return r.json();
+      } catch (e) { console.warn('[market-price] feed err:', e.message); return null; }
+      finally { clearTimeout(t); }
+    };
+
+    // Fallback: lookalike via IP proxy
+    const fetchLookalike = async (withYear) => {
+      if (!proxyUrl) return null;
+      const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
+      if (withYear && yearRange) p.set('year', yearRange);
+      const url = `${proxyUrl}?${p}`;
+      console.log('[market-price] lookalike url:', url.replace(proxySecret, '***'));
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 12000);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] lookalike:', r.status, b.slice(0, 200)); return null; }
         return r.json();
       } finally { clearTimeout(t); }
     };
 
-    let data = await fetchProxy(true);
-
-    // Log each item returned for verification
-    const rawItems = Array.isArray(data?.data) ? data.data : [];
-    console.log(`[market-price] got ${rawItems.length} items from proxy`);
-    rawItems.slice(0, 10).forEach((item, i) => {
-      console.log(`[market-price] item[${i}]:`,
-        `manufacturer=${item.manufacturer?.text}(${item.manufacturer?.id})`,
-        `model=${item.model?.text}(${item.model?.id})`,
-        `subModel=${item.subModel?.text}`,
-        `year=${item.vehicleDates?.yearOfProduction}`,
-        `price=${item.price}`,
-        `km=${item.km}`
-      );
-    });
-
-    let prices = extractMarketPrices(data, vehicle.year);
-
-    // Retry without year filter if no results
-    if (!prices && vehicle.year) {
-      console.log('[market-price] retrying without year filter');
-      data = await fetchProxy(false);
-      prices = extractMarketPrices(data, vehicle.year);
+    // Try feed (exact) → lookalike (similar) as fallback
+    let data = await fetchFeed(true);
+    let rawItems = _extractItems(data);
+    if (!rawItems.length) {
+      console.log('[market-price] feed empty, falling back to lookalike');
+      data = await fetchLookalike(true);
+      rawItems = _extractItems(data);
     }
+    // Retry without year if still empty
+    if (!rawItems.length && vehicle.year) {
+      data = await fetchFeed(false);
+      rawItems = _extractItems(data);
+      if (!rawItems.length) {
+        data = await fetchLookalike(false);
+        rawItems = _extractItems(data);
+      }
+    }
+
+    console.log(`[market-price] got ${rawItems.length} items`);
+
+    let prices = _calcPrices(rawItems, vehicle.year);
 
     console.log('[market-price] final prices:', JSON.stringify(prices));
     const debugItems = rawItems.slice(0, 15).map(item => ({
@@ -425,6 +443,42 @@ router.get('/:id/market-price', async (req, res, next) => {
     res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, _debug: debugItems } });
   } catch (err) { next(err); }
 });
+
+function _extractItems(data) {
+  if (!data) return [];
+  const items = Array.isArray(data?.data) ? data.data
+    : Array.isArray(data?.data?.feed_items) ? data.data.feed_items
+    : Array.isArray(data?.data?.items)      ? data.data.items
+    : Array.isArray(data?.items)            ? data.items
+    : [];
+  return items;
+}
+
+function _calcPrices(items, filterYear) {
+  if (!items.length) return null;
+  let filtered = items;
+  if (filterYear) {
+    const byYear = items.filter(i =>
+      Number(i.vehicleDates?.yearOfProduction ?? i.yearOfProduction ?? i.year ?? 0) === Number(filterYear)
+    );
+    if (byYear.length >= 3) filtered = byYear;
+  }
+  const priceArr = filtered.map(i => Number(i.price ?? 0)).filter(p => p > 0);
+  if (!priceArr.length) return null;
+  const kmArr = filtered.map(i => Number(i.km ?? 0)).filter(k => k > 0);
+  const sorted = [...priceArr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const trim = Math.max(1, Math.floor(sorted.length * 0.1));
+  const trimmed = sorted.length >= 10 ? sorted.slice(trim, sorted.length - trim) : sorted;
+  return {
+    avg:    Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
+    median: sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2),
+    min:    trimmed[0],
+    max:    trimmed[trimmed.length - 1],
+    count:  priceArr.length,
+    avgKm:  kmArr.length ? Math.round(kmArr.reduce((a, b) => a + b, 0) / kmArr.length) : null,
+  };
+}
 
 function extractMarketPrices(data, filterYear) {
   if (!data) return null;
