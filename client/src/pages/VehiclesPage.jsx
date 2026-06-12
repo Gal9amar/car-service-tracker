@@ -152,15 +152,15 @@ function VehicleCard({ vehicle, onEdit, onDelete }) {
         </div>
       </Link>
 
-      {/* Action buttons row — text style */}
-      <div className="flex gap-4 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
-        <Link to={`/vehicles/${vehicle.id}`} className="text-xs text-brand-600 dark:text-brand-400 font-medium hover:underline">
+      {/* Action buttons row */}
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
+        <Link to={`/vehicles/${vehicle.id}`} className="text-xs text-brand-600 dark:text-brand-400 font-medium hover:underline ml-auto">
           לפרטי הרכב ←
         </Link>
-        <button onClick={onEdit} className="text-xs text-surface-400 hover:text-brand-500 font-medium transition-colors">
+        <button onClick={onEdit} className="text-xs font-medium px-3 py-1 rounded-lg bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors">
           ערוך
         </button>
-        <button onClick={onDelete} className="text-xs text-surface-400 hover:text-red-500 font-medium transition-colors">
+        <button onClick={onDelete} className="text-xs font-medium px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">
           מחק
         </button>
       </div>
