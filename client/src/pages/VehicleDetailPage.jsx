@@ -171,11 +171,11 @@ export default function VehicleDetailPage() {
         <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 flex items-center justify-center p-3">
           {hasImage ? (
             <>
-              <div className="relative w-full h-44 rounded-2xl overflow-hidden">
+              <div className="relative w-full h-44 overflow-hidden" style={{ borderRadius: '20px' }}>
                 <img
                   src={`${vehicle.imageUrl}${imgCacheBust}`}
                   alt={`${vehicle.manufacturer} ${vehicle.model}`}
-                  className="h-full w-full object-contain p-3 drop-shadow-md"
+                  className="h-full w-full object-cover drop-shadow-md"
                   onError={() => setImgError(true)}
                 />
               </div>
