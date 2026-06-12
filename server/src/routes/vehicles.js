@@ -376,54 +376,29 @@ router.get('/:id/market-price', async (req, res, next) => {
 
     const yearRange = vehicle.year ? `${vehicle.year}-${vehicle.year}` : null;
 
-    // Fetch via IP proxy — supports both feed (type=feed) and lookalike
-    const fetchProxy = async (type, withYear) => {
+    // Fetch via IP proxy (lookalike endpoint — returns similar segment vehicles)
+    const fetchLookalike = async (withYear) => {
       if (!proxyUrl) return null;
       const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
-      if (type === 'feed') p.set('type', 'feed');
       if (withYear && yearRange) p.set('year', yearRange);
-      const url = `${proxyUrl}?${p}`;
-      console.log(`[market-price] proxy ${type}${withYear ? '+year' : ''} url:`, url.replace(proxySecret, '***'));
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
       try {
-        const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) { const b = await r.text().catch(() => ''); console.warn(`[market-price] proxy ${type}:`, r.status, b.slice(0, 200)); return null; }
+        const r = await fetch(`${proxyUrl}?${p}`, { signal: ctrl.signal });
+        if (!r.ok) return null;
         return r.json();
-      } catch (e) { console.warn(`[market-price] proxy ${type} err:`, e.message); return null; }
+      } catch { return null; }
       finally { clearTimeout(t); }
     };
 
-    // Try: proxy feed+year → proxy feed → proxy lookalike+year → proxy lookalike
-    let data = await fetchProxy('feed', true);
+    let data = await fetchLookalike(true);
     let rawItems = _extractItems(data);
-    let source = 'proxy-feed+year';
-    console.log(`[market-price] proxy feed+year: ${rawItems.length} items`);
-
     if (!rawItems.length) {
-      source = 'proxy-feed';
-      data = await fetchProxy('feed', false);
+      data = await fetchLookalike(false);
       rawItems = _extractItems(data);
-      console.log(`[market-price] proxy feed: ${rawItems.length} items`);
-    }
-    if (!rawItems.length) {
-      source = 'proxy-lookalike+year';
-      data = await fetchProxy('lookalike', true);
-      rawItems = _extractItems(data);
-      console.log(`[market-price] proxy lookalike+year: ${rawItems.length} items`);
-    }
-    if (!rawItems.length) {
-      source = 'proxy-lookalike';
-      data = await fetchProxy('lookalike', false);
-      rawItems = _extractItems(data);
-      console.log(`[market-price] proxy lookalike: ${rawItems.length} items`);
     }
 
-    console.log(`[market-price] final source=${source}, ${rawItems.length} items`);
-
-    let prices = _calcPrices(rawItems, vehicle.year);
-
-    console.log('[market-price] final prices:', JSON.stringify(prices));
+    const prices = _calcPrices(rawItems, vehicle.year);
     res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year, source: 'similar' } });
   } catch (err) { next(err); }
 });
