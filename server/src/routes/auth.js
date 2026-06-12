@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie, authenticate } from '../middleware/auth.js';
+import { sendEmail, buildOtpEmailHtml } from '../services/emailService.js';
 
 const router = Router();
 
@@ -140,6 +141,78 @@ router.put('/password', authenticate, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ============================================
+// POST /api/auth/send-code  (passwordless OTP)
+// ============================================
+router.post('/send-code', async (req, res, next) => {
+  try {
+    const { email, name } = z.object({
+      email: z.string().email('כתובת מייל לא תקינה'),
+      name: z.string().min(2, 'השם חייב להכיל לפחות 2 תווים').optional(),
+    }).parse(req.body);
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      if (!name) return res.json({ needsName: true });
+      user = await prisma.user.create({ data: { email, name } });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 10 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verifyCode: code, verifyExpires: expires },
+    });
+
+    await sendEmail({
+      to: email,
+      subject: `${code} — קוד הכניסה שלך`,
+      html: buildOtpEmailHtml({ userName: user.name, code }),
+    });
+
+    res.json({ sent: true });
+  } catch (err) { next(err); }
+});
+
+// ============================================
+// POST /api/auth/verify-code  (passwordless OTP)
+// ============================================
+router.post('/verify-code', async (req, res, next) => {
+  try {
+    const { email, code } = z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+    }).parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user?.verifyCode || !user?.verifyExpires) {
+      return res.status(401).json({ error: 'לא נשלח קוד לכתובת זו. נסה שוב.' });
+    }
+    if (user.verifyCode !== code) {
+      return res.status(401).json({ error: 'הקוד שגוי. בדוק ונסה שוב.' });
+    }
+    if (new Date() > user.verifyExpires) {
+      return res.status(401).json({ error: 'הקוד פג תוקף. שלח קוד חדש.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verifyCode: null, verifyExpires: null, isVerified: true },
+    });
+
+    const token = generateToken(user.id);
+    setTokenCookie(res, token);
+
+    res.json({
+      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      token,
+    });
+  } catch (err) { next(err); }
 });
 
 export default router;
