@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Users, Car, Wrench, CreditCard, ChevronDown, ChevronUp, Calendar, Gauge } from 'lucide-react';
+import { Users, Car, Wrench, CreditCard, ChevronDown, ChevronUp, Calendar, Gauge, Trash2 } from 'lucide-react';
 
 const ADMIN_API = '/api/admin/users';
+const BYD_BAND  = { background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' };
 
 const SERVICE_TYPE_LABELS = {
   PERIODIC: 'טיפול תקופתי', OIL: 'החלפת שמן', BRAKES: 'בלמים',
-  TIRES: 'צמיגים', BATTERY: 'מצבר', AC: 'מזגן',
-  TIMING_BELT: 'רצועת תזמון', FILTERS: 'מסננים', SUSPENSION: 'מתלים',
-  ELECTRICAL: 'חשמל', BODY_WORK: 'פח צבע', GENERAL: 'כללי', OTHER: 'אחר',
+  TIRES: 'צמיגים', BATTERY: 'מצבר', AC: 'מיזוג אוויר',
+  TIMING_BELT: 'רצועת טיימינג', FILTERS: 'פילטרים', SUSPENSION: 'מתלים',
+  ELECTRICAL: 'חשמל', BODY_WORK: 'פחחות', GENERAL: 'כללי', OTHER: 'אחר',
 };
 
 const EXPENSE_LABELS = {
   FUEL: 'דלק', PARKING: 'חניה', FINE: 'קנס', INSURANCE: 'ביטוח',
-  LICENSE: 'רישיון', TOLL: 'כביש אגרה', WASH: 'שטיפה',
+  LICENSE: 'רישיון', TOLL: 'אגרה', WASH: 'שטיפה',
   ACCESSORIES: 'אביזרים', OTHER: 'אחר',
 };
 
@@ -28,13 +29,13 @@ function VehicleCard({ vehicle }) {
   const testPast = testExpiry && testExpiry < Date.now();
 
   return (
-    <div className="border border-surface-200 dark:border-surface-700 rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #E8EEF5' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-750 transition-colors text-right"
-      >
+        className="w-full flex items-center justify-between px-4 py-3 text-right transition-colors"
+        style={{ background: '#F0F4F8' }}>
         <div className="flex items-center gap-3">
-          <Car size={18} className="text-brand-500 shrink-0" />
+          <Car size={18} className="shrink-0" style={{ color: '#0066CC' }} />
           <div>
             <p className="font-semibold text-surface-800 dark:text-surface-100 text-sm">
               {vehicle.nickname || `${vehicle.manufacturer} ${vehicle.model}`}
@@ -48,7 +49,7 @@ function VehicleCard({ vehicle }) {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex gap-2 text-xs">
-            <span className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 rounded-full px-2 py-0.5">
+            <span className="rounded-full px-2 py-0.5" style={{ background: '#EFF7FF', color: '#0066CC' }}>
               {vehicle._count.services} טיפולים
             </span>
             <span className="bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2 py-0.5">
@@ -61,7 +62,6 @@ function VehicleCard({ vehicle }) {
 
       {open && (
         <div className="px-4 py-3 space-y-4 bg-white dark:bg-surface-900">
-          {/* פרטי רכב */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             {vehicle.currentMileage && (
               <div className="flex items-center gap-1.5 text-surface-600 dark:text-surface-400">
@@ -77,7 +77,6 @@ function VehicleCard({ vehicle }) {
             )}
           </div>
 
-          {/* טיפולים אחרונים */}
           {vehicle.services.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
@@ -94,7 +93,7 @@ function VehicleCard({ vehicle }) {
                     </div>
                     <div className="flex gap-2 text-surface-500 shrink-0 mr-2">
                       <span>{fmt(s.date)}</span>
-                      {s.cost && <span className="text-green-600 dark:text-green-400">₪{Number(s.cost).toLocaleString()}</span>}
+                      {s.cost && <span className="text-emerald-600 dark:text-emerald-400">₪{Number(s.cost).toLocaleString()}</span>}
                     </div>
                   </div>
                 ))}
@@ -102,7 +101,6 @@ function VehicleCard({ vehicle }) {
             </div>
           )}
 
-          {/* הוצאות אחרונות */}
           {vehicle.expenses.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
@@ -119,7 +117,7 @@ function VehicleCard({ vehicle }) {
                     </div>
                     <div className="flex gap-2 text-surface-500 shrink-0 mr-2">
                       <span>{fmt(e.date)}</span>
-                      <span className="text-green-600 dark:text-green-400">₪{Number(e.amount).toLocaleString()}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">₪{Number(e.amount).toLocaleString()}</span>
                     </div>
                   </div>
                 ))}
@@ -132,29 +130,61 @@ function VehicleCard({ vehicle }) {
   );
 }
 
-function UserCard({ user }) {
+function UserCard({ user, onDelete }) {
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'שגיאה');
+      onDelete(user.id);
+    } catch (err) {
+      alert(err.message);
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+      <div className="h-1.5" style={BYD_BAND} />
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors text-right"
-      >
+        onClick={() => { setOpen(o => !o); setConfirmDelete(false); }}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors text-right">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-sm shrink-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
+            style={{ background: 'linear-gradient(135deg, #0066CC 0%, #00B4A0 100%)' }}>
             {user.name?.[0] || user.email[0].toUpperCase()}
           </div>
           <div>
             <p className="font-semibold text-surface-800 dark:text-surface-100">{user.name || '—'}</p>
-            <p className="text-xs text-surface-500">{user.email}</p>
+            <p className="text-xs text-surface-500" dir="ltr">{user.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-left">
             <p className="text-xs text-surface-400">נרשם {fmt(user.createdAt)}</p>
-            <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">{user._count.vehicles} רכבים</p>
+            <p className="text-xs font-medium" style={{ color: '#0066CC' }}>{user._count.vehicles} רכבים</p>
           </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className={`p-1.5 rounded-lg transition-colors text-xs font-medium flex items-center gap-1 ${
+              confirmDelete
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600'
+            } disabled:opacity-50`}
+          >
+            {deleting
+              ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <><Trash2 size={14} />{confirmDelete && <span>אישור</span>}</>}
+          </button>
           {open ? <ChevronUp size={16} className="text-surface-400" /> : <ChevronDown size={16} className="text-surface-400" />}
         </div>
       </button>
@@ -173,74 +203,72 @@ function UserCard({ user }) {
 }
 
 export default function AdminPage() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]   = useState(null);
 
   useEffect(() => {
     fetch(ADMIN_API, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => {
-        if (d.error) throw new Error(d.error);
-        setUsers(d.users);
-      })
+      .then(d => { if (d.error) throw new Error(d.error); setUsers(d.users); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
+  const deleteUser = (id) => setUsers(prev => prev.filter(u => u.id !== id));
   const totalVehicles = users.reduce((s, u) => s + u._count.vehicles, 0);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#0066CC', borderTopColor: 'transparent' }} />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-20 text-red-500">{error}</div>
-    );
-  }
+  if (error) return <div className="text-center py-20 text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-surface-900 dark:text-surface-50">
-          פאנל מנהל
-        </h1>
-        <p className="text-sm text-surface-500 mt-1">סקירת כל המשתמשים והנתונים שלהם</p>
+    <div className="space-y-4 fade-in" dir="rtl">
+      <div className="pt-1">
+        <h1 className="text-2xl font-bold text-surface-900 dark:text-white">פאנל מנהל</h1>
+        <p className="text-sm text-surface-400 mt-0.5">סקירת כל המשתמשים והנתונים שלהם</p>
       </div>
 
-      {/* סטטיסטיקות */}
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center">
-            <Users size={20} className="text-brand-600 dark:text-brand-400" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-surface-900 dark:text-surface-50">{users.length}</p>
-            <p className="text-xs text-surface-500">משתמשים</p>
+        <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+          <div className="h-1.5" style={BYD_BAND} />
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#EFF7FF' }}>
+              <Users size={20} style={{ color: '#0066CC' }} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-surface-900 dark:text-surface-50">{users.length}</p>
+              <p className="text-xs text-surface-500">משתמשים</p>
+            </div>
           </div>
         </div>
-        <div className="card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-            <Car size={20} className="text-green-600 dark:text-green-400" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-surface-900 dark:text-surface-50">{totalVehicles}</p>
-            <p className="text-xs text-surface-500">רכבים</p>
+        <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #00B4A0 0%, #0066CC 100%)' }} />
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#DCFCE7' }}>
+              <Car size={20} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-surface-900 dark:text-surface-50">{totalVehicles}</p>
+              <p className="text-xs text-surface-500">רכבים</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* רשימת משתמשים */}
+      {/* Users list */}
       <div className="space-y-3">
         {users.length === 0 ? (
           <p className="text-center text-surface-400 py-10">אין משתמשים</p>
         ) : (
-          users.map(u => <UserCard key={u.id} user={u} />)
+          users.map(u => <UserCard key={u.id} user={u} onDelete={deleteUser} />)
         )}
       </div>
     </div>

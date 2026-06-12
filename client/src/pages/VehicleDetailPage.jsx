@@ -31,7 +31,7 @@ function VehiclePlate({ number }) {
 function Section({ title, icon: Icon, iconColor, iconBg, count, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-right"
@@ -139,29 +139,34 @@ export default function VehicleDetailPage() {
     <div className="space-y-3 fade-in pb-8" dir="rtl">
 
       {/* Back + PDF */}
-      <div className="flex items-center justify-between">
-        <Link to="/vehicles" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1">
+      <div className="flex items-center justify-between pt-1">
+        <Link to="/vehicles" className="flex items-center gap-1 text-sm font-semibold" style={{ color: '#0066CC' }}>
           <ArrowRight size={16} />חזרה לרכבים
         </Link>
         <a href={reports.vehiclePdfUrl(vehicle.id)} target="_blank" rel="noopener"
-          className="flex items-center gap-1.5 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors text-surface-500 dark:text-surface-300 text-xs font-semibold px-3 py-2 rounded-xl shadow-sm">
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+          style={{ background: '#F0F4F8', color: '#556F8A' }}>
           <FileText size={14} />דוח PDF
         </a>
       </div>
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
+        {/* BYD color band */}
+        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
         {/* Image */}
-        <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 h-48 flex items-center justify-center">
+        <div className="relative bg-gradient-to-b from-surface-50 to-white dark:from-surface-700 dark:to-surface-800 flex items-center justify-center p-3">
           {hasImage ? (
             <>
-              <img
-                src={`${vehicle.imageUrl}${imgCacheBust}`}
-                alt={`${vehicle.manufacturer} ${vehicle.model}`}
-                className="h-full w-full object-contain p-4 drop-shadow-md"
-                onError={() => setImgError(true)}
-              />
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white/60 bg-black/25 px-2 py-0.5 rounded-full pointer-events-none select-none whitespace-nowrap">
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden">
+                <img
+                  src={`${vehicle.imageUrl}${imgCacheBust}`}
+                  alt={`${vehicle.manufacturer} ${vehicle.model}`}
+                  className="h-full w-full object-contain p-3 drop-shadow-md"
+                  onError={() => setImgError(true)}
+                />
+              </div>
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] text-white bg-blue-900 px-2 py-0.5 rounded-full pointer-events-none select-none whitespace-nowrap">
                 תמונה להמחשה בלבד
               </span>
               <button
@@ -240,7 +245,7 @@ export default function VehicleDetailPage() {
             iconColor="text-emerald-500"
             iconBg="bg-emerald-50 dark:bg-emerald-900/30"
             title="טיפול תקופתי"
-            subtitle={`בעוד ${formatNumber(lastService.nextServiceMileage - (vehicle.currentMileage || 0))} ק״מ`}
+            subtitle={`יעד: ${formatNumber(lastService.nextServiceMileage)} ק״מ`}
             right={`${formatNumber(lastService.nextServiceMileage)} ק״מ`}
           />
         </Section>
@@ -572,7 +577,26 @@ function ServicesSection({ vehicleId, services, onRefresh }) {
             <div><label className="label">עלות (₪)</label><input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} className="input" placeholder="0" required dir="ltr" /></div>
             <div><label className="label">קילומטראז׳</label><input type="number" value={form.mileage} onChange={e => setForm({...form, mileage: e.target.value})} className="input" placeholder="120000" dir="ltr" /></div>
             {form.serviceType === 'PERIODIC' && (
-              <div><label className="label">ק״מ לטיפול הבא</label><input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="130000" dir="ltr" /></div>
+              <div className="col-span-2">
+                <label className="label">ק״מ לטיפול הבא</label>
+                <div className="flex gap-2 mb-2">
+                  {[10000, 12000, 15000].map(interval => (
+                    <button
+                      key={interval}
+                      type="button"
+                      onClick={() => setForm({ ...form, nextServiceMileage: String((parseInt(form.mileage) || 0) + interval) })}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        form.nextServiceMileage && parseInt(form.nextServiceMileage) === (parseInt(form.mileage) || 0) + interval
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:border-brand-400 hover:text-brand-600'
+                      }`}
+                    >
+                      +{(interval / 1000).toLocaleString('he-IL')}K ק״מ
+                    </button>
+                  ))}
+                </div>
+                <input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="הזן ידנית..." dir="ltr" />
+              </div>
             )}
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[56px]" placeholder="פרטים נוספים..." /></div>
@@ -752,6 +776,7 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['לוחית רישוי', vehicle.licensePlate],
     ['יצרן', vehicle.manufacturer],
     ['דגם', vehicle.model],
+    ['רמת גימור', vehicle.trim],
     ['שנת ייצור', vehicle.year],
     ['צבע', vehicle.color],
     ['דלק', vehicle.fuelType],
@@ -761,17 +786,26 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['כוח סוס', vehicle.horsePower ? `${vehicle.horsePower} כ"ס` : null],
     ['תיבת הילוכים', vehicle.transmission],
     ['הנעה', vehicle.driveType],
+    ['תקן', vehicle.standardType],
     ['סוג מרכב', vehicle.bodyType],
     ['דלתות', vehicle.doors],
     ['מושבים', vehicle.seats],
-    ['משקל', vehicle.weight ? `${vehicle.weight} ק"ג` : null],
+    ['חלונות חשמל', vehicle.electricWindows],
+    ['משקל כולל', vehicle.weight ? `${vehicle.weight} ק"ג` : null],
+    ['כושר גרירה עם בלמים', vehicle.towingWithBrakes ? `${vehicle.towingWithBrakes} ק"ג` : null],
+    ['כושר גרירה ללא בלמים', vehicle.towingWithoutBrakes ? `${vehicle.towingWithoutBrakes} ק"ג` : null],
     ['צמיג קדמי', vehicle.frontTire],
     ['צמיג אחורי', vehicle.rearTire],
     ['כריות אוויר', vehicle.airbags],
     ['בעלות', vehicle.ownership],
     ['מקור', vehicle.origin],
+    ['עלייה לכביש', vehicle.firstRegistered ? fmtDate(vehicle.firstRegistered) : null],
     ['CO₂', vehicle.co2 ? `${vehicle.co2} גר/ק"מ` : null],
+    ['CO₂ עיר', vehicle.co2City ? `${vehicle.co2City} גר/ק"מ` : null],
+    ['CO₂ כביש מהיר', vehicle.co2Highway ? `${vehicle.co2Highway} גר/ק"מ` : null],
+    ['NOx', vehicle.nox ? `${vehicle.nox} מ"ג/ק"מ` : null],
     ['ציון ירוק', vehicle.greenScore],
+    ['ניקוד בטיחות', vehicle.safetyScore],
     ['דירוג בטיחות', vehicle.safetyRating],
   ].filter(([, v]) => v !== null && v !== undefined && v !== '');
 
@@ -791,9 +825,18 @@ function DetailsSection({ vehicle, setVehicle }) {
     ['שיוט אדפטיבי', vehicle.hasAdaptiveCruise],
     ['זיהוי הולכי רגל', vehicle.hasPedestrianDetect],
     ['בלימת חירום אוטומטית', vehicle.hasAutoEmergencyBrake],
+    ['אורות גבוהים אוטומטיים', vehicle.hasAutoHighBeam],
     ['מגביל מהירות', vehicle.hasSpeedLimiter],
     ['נעילת אלכוהול', vehicle.hasAlcoLock],
   ];
+
+  const inspectionFlags = [
+    { label: 'שינוי מבנה', value: vehicle.structureChange },
+    { label: 'גרפ"מ (נפגע קשה)', value: vehicle.hasGrapam },
+    { label: 'שינוי צבע', value: vehicle.colorChange },
+    { label: 'שינוי צמיגים', value: vehicle.tireChange },
+  ];
+  const hasAnyFlag = inspectionFlags.some(f => f.value);
 
   const recalls = vehicle.recalls || [];
   const ownershipHistory = vehicle.ownershipHistory || [];
@@ -844,6 +887,27 @@ function DetailsSection({ vehicle, setVehicle }) {
           </div>
         ))}
       </div>
+
+      {/* Test / inspection flags */}
+      {(vehicle.testKm || hasAnyFlag) && (
+        <div className="bg-surface-50 dark:bg-surface-700/40 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-surface-400 uppercase tracking-wide">נתוני טסט ובדיקה</p>
+          {vehicle.testKm > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-surface-500">ק"מ בטסט האחרון</span>
+              <span className="text-xs font-medium text-surface-800 dark:text-surface-100">{vehicle.testKm.toLocaleString('he-IL')} ק"מ</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {inspectionFlags.map(f => (
+              <div key={f.label} className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg ${f.value ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-surface-400'}`}>
+                <span className="font-bold">{f.value ? '⚠' : '✓'}</span>
+                <span>{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Safety features */}
       <div>
