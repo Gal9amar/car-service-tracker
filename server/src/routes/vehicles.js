@@ -256,6 +256,60 @@ router.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/vehicles/:id/market-price
+router.get('/:id/market-price', async (req, res, next) => {
+  try {
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+      select: { manufacturer: true, model: true, year: true },
+    });
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
+
+    const proxyUrl = process.env.YAD2_PROXY_URL;
+    const proxySecret = process.env.YAD2_PROXY_SECRET;
+    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+
+    const headers = { 'Authorization': `Bearer ${proxySecret}` };
+    const base = new URLSearchParams({ rows: '50' });
+    if (vehicle.manufacturer) base.set('manufacturer', vehicle.manufacturer);
+    if (vehicle.model) base.set('model', vehicle.model);
+    if (vehicle.year) base.set('year', String(vehicle.year));
+
+    const [lookalike, feed] = await Promise.all([
+      fetch(`${proxyUrl}?type=lookalike&${base}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${proxyUrl}?type=feed&${base}&rows=1`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    const prices = extractMarketPrices(lookalike);
+    const totalOnRoad = feed?.total ?? 0;
+
+    res.json({ marketPrice: { prices, totalOnRoad, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
+  } catch (err) { next(err); }
+});
+
+function extractMarketPrices(data) {
+  if (!data) return null;
+  try {
+    const stats = data?.data;
+    if (!stats) return null;
+    const avg = Number(stats.price_average ?? stats.avgPrice ?? 0);
+    const min = Number(stats.price_min ?? stats.minPrice ?? 0);
+    const max = Number(stats.price_max ?? stats.maxPrice ?? 0);
+    const count = Number(stats.total ?? stats.count ?? 0);
+    if (avg > 0) return { avg, min, max, count };
+    const arr = Array.isArray(data?.data) ? data.data : [];
+    if (!arr.length) return null;
+    const prices = arr.map(i => Number(i.price ?? i.Price ?? 0)).filter(p => p > 0);
+    if (!prices.length) return null;
+    return {
+      avg: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+      count: prices.length,
+    };
+  } catch { return null; }
+}
+
 // GET /api/vehicles/:id
 router.get('/:id', async (req, res, next) => {
   try {

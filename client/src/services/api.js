@@ -47,6 +47,7 @@ export const vehicles = {
   delete: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   lookup: (plate) => request(`/vehicles/lookup/${plate}`),
   refresh: (id) => request(`/vehicles/${id}/refresh`, { method: 'POST' }),
+  marketPrice: (id) => request(`/vehicles/${id}/market-price`),
   refreshImage: (id) => request(`/vehicles/${id}/refresh-image`, { method: 'POST' }),
 };
 
