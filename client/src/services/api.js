@@ -27,6 +27,8 @@ async function request(url, options = {}) {
 
 // Auth
 export const auth = {
+  sendCode: (data) => request('/auth/send-code', { method: 'POST', body: data }),
+  verifyCode: (data) => request('/auth/verify-code', { method: 'POST', body: data }),
   register: (data) => request('/auth/register', { method: 'POST', body: data }),
   login: (data) => request('/auth/login', { method: 'POST', body: data }),
   changePassword: (data) => request('/auth/password', { method: 'PUT', body: data }),
