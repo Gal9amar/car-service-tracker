@@ -284,15 +284,21 @@ export default function VehicleDetailPage() {
                   <p className="text-[11px] text-surface-400 mt-0.5">{marketPrice.totalOnRoad} מכוניות למכירה ביד2</p>
                 )}
               </div>
-              {/* Min / Max */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl px-3 py-2 text-center" style={{ background: '#F0FFF4' }}>
-                  <p className="text-sm font-black text-emerald-600" dir="ltr">₪{marketPrice.prices.min.toLocaleString('he-IL')}</p>
-                  <p className="text-[10px] text-surface-400 mt-0.5">מחיר מינימום</p>
+              {/* Min / Median / Max */}
+              <div className="grid grid-cols-3 gap-1.5">
+                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#F0FFF4' }}>
+                  <p className="text-xs font-black text-emerald-600" dir="ltr">₪{marketPrice.prices.min.toLocaleString('he-IL')}</p>
+                  <p className="text-[10px] text-surface-400 mt-0.5">מינימום</p>
                 </div>
-                <div className="rounded-xl px-3 py-2 text-center" style={{ background: '#FFF7ED' }}>
-                  <p className="text-sm font-black text-amber-600" dir="ltr">₪{marketPrice.prices.max.toLocaleString('he-IL')}</p>
-                  <p className="text-[10px] text-surface-400 mt-0.5">מחיר מקסימום</p>
+                {marketPrice.prices.median && (
+                  <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#EFF6FF' }}>
+                    <p className="text-xs font-black text-blue-600" dir="ltr">₪{marketPrice.prices.median.toLocaleString('he-IL')}</p>
+                    <p className="text-[10px] text-surface-400 mt-0.5">חציון</p>
+                  </div>
+                )}
+                <div className="rounded-xl px-2 py-2 text-center" style={{ background: '#FFF7ED' }}>
+                  <p className="text-xs font-black text-amber-600" dir="ltr">₪{marketPrice.prices.max.toLocaleString('he-IL')}</p>
+                  <p className="text-[10px] text-surface-400 mt-0.5">מקסימום</p>
                 </div>
               </div>
               {marketPrice.prices.count > 0 && (

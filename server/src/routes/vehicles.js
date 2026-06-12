@@ -256,6 +256,95 @@ router.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Yad2 market price helpers ─────────────────────────────────────────────
+
+// Hebrew manufacturer name → Yad2 numeric ID (sourced from carinfo-bot)
+const _YAD2_MAKES = {
+  "אאודי": 1, "אופל": 2, "אינפיניטי": 3, "איסוזו": 4, "אלפא רומיאו": 5,
+  "אם ג'י": 6, "ב מ וו": 7, "ג'יפ": 10, "גרייט וול": 11, "דאצ'יה": 12,
+  "הונדה": 17, "וולוו": 18, "טויוטה": 19, "יגואר": 20, "יונדאי": 21,
+  "לנד רובר": 24, "לקסוס": 26, "מאזדה": 27, "מיני": 29, "מיצובישי": 30,
+  "מרצדס-בנץ": 31, "ניסאן": 32, "סאנגיונג": 34, "סובארו": 35, "סוזוקי": 36,
+  "סיאט": 37, "סיטרואן": 38, "סמארט": 39, "סקודה": 40, "פולקסווגן": 41,
+  "פורד": 43, "פורשה": 44, "פיאט": 45, "פיג'ו": 46, "קיה": 48, "רנו": 51,
+  "שברולט": 52, "טסלה": 62, "לאדה": 80, "דונגפנג": 88, "מקסוס": 89,
+  "ראם": 91, "קופרה": 92, "ג'נסיס": 93, "בי.ווי.די": 141, "ניאו": 289,
+  // Aliases (alternate spellings from data.gov.il)
+  "מזדה": 27, "מרצדס בנץ": 31, "סיט": 37, "מג": 6, "ב י ד": 141, "ריניה": 51,
+};
+
+function _yad2Norm(s) {
+  return String(s || '').trim().toLowerCase()
+    .replace(/[''׳]/g, "'").replace(/-/g, ' ').replace(/\./g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function _getManufacturerId(name) {
+  if (!name) return null;
+  const n = _yad2Norm(name);
+  for (const [k, v] of Object.entries(_YAD2_MAKES)) {
+    if (_yad2Norm(k) === n) return v;
+  }
+  for (const [k, v] of Object.entries(_YAD2_MAKES)) {
+    const kn = _yad2Norm(k);
+    if (n.includes(kn) || kn.includes(n)) return v;
+  }
+  return null;
+}
+
+let _yad2ModelsCache = null;
+
+async function _getModelId(manufacturerId, modelName) {
+  if (!modelName) return null;
+  if (!_yad2ModelsCache) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(
+        'https://raw.githubusercontent.com/Gal9amar/carinfo-bot/main/src/yad2_models.json',
+        { signal: ctrl.signal }
+      );
+      clearTimeout(t);
+      _yad2ModelsCache = await res.json();
+    } catch (e) {
+      console.error('[market-price] yad2_models fetch failed:', e.message);
+      return null;
+    }
+  }
+
+  const mfr = _yad2ModelsCache?.manufacturers?.[String(manufacturerId)];
+  if (!mfr?.models) return null;
+
+  const norm = _yad2Norm(modelName).replace(/[''׳]/g, '');
+  const models = Object.values(mfr.models);
+
+  // Exact match first
+  for (const m of models) {
+    const he = _yad2Norm(m.name_he || '').replace(/[''׳]/g, '');
+    const en = _yad2Norm(m.name_en || '').replace(/[''׳]/g, '');
+    if (norm === he || norm === en) return Number(m.id);
+  }
+  // Substring match
+  for (const m of models) {
+    const he = _yad2Norm(m.name_he || '').replace(/[''׳]/g, '');
+    const en = _yad2Norm(m.name_en || '').replace(/[''׳]/g, '');
+    if (norm.length >= 3 && (he.includes(norm) || norm.includes(he) || en.includes(norm) || norm.includes(en))) return Number(m.id);
+  }
+  // Prefix match (first 5 chars)
+  if (norm.length >= 4) {
+    const pfx = norm.slice(0, 5);
+    for (const m of models) {
+      const en = _yad2Norm(m.name_en || '').replace(/[''׳]/g, '');
+      const he = _yad2Norm(m.name_he || '').replace(/[''׳]/g, '');
+      for (const key of [en, he]) {
+        if (!key) continue;
+        if ((key.startsWith(pfx) || norm.startsWith(key.slice(0, 5))) && Math.abs(key.length - norm.length) <= 3) return Number(m.id);
+      }
+    }
+  }
+  return null;
+}
+
 // GET /api/vehicles/:id/market-price
 router.get('/:id/market-price', async (req, res, next) => {
   try {
@@ -265,75 +354,78 @@ router.get('/:id/market-price', async (req, res, next) => {
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    const workerUrl = process.env.YAD2_CF_WORKER_URL;
-    if (!workerUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const proxyUrl = process.env.YAD2_PROXY_URL;
+    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const proxySecret = process.env.YAD2_PROXY_SECRET || 'carinfo2026';
 
-    // Cloudflare Worker accepts text names (tozeret_nm, kinuy_mishari) and plain year
-    const buildParams = (type, rows = '50') => {
-      const p = new URLSearchParams({ type, rows });
-      if (vehicle.manufacturer) p.set('manufacturer', vehicle.manufacturer);
-      if (vehicle.model)        p.set('model', vehicle.model);
-      if (vehicle.year)         p.set('year', String(vehicle.year));
-      return p;
+    const manufacturerId = _getManufacturerId(vehicle.manufacturer);
+    console.log('[market-price] manufacturer:', vehicle.manufacturer, '→', manufacturerId, '| model:', vehicle.model, '| year:', vehicle.year);
+
+    if (!manufacturerId) {
+      return res.json({ marketPrice: { prices: null, totalOnRoad: 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
+    }
+
+    const modelId = await _getModelId(manufacturerId, vehicle.model);
+    console.log('[market-price] modelId:', modelId, 'for', vehicle.model);
+
+    const fetchProxy = async (withModel) => {
+      const p = new URLSearchParams({ manufacturer: manufacturerId, rows: '100', secret: proxySecret });
+      if (withModel && modelId) p.set('model', modelId);
+      if (vehicle.year) p.set('year', `${vehicle.year}-${vehicle.year}`);
+      const url = `${proxyUrl}?${p}`;
+      console.log('[market-price] url:', url.replace(proxySecret, '***'));
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 12000);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] proxy:', r.status, b.slice(0, 200)); return null; }
+        return r.json();
+      } finally { clearTimeout(t); }
     };
 
-    const fetchWorker = async (params) => {
-      const r = await fetch(`${workerUrl}?${params}`);
-      if (!r.ok) {
-        const body = await r.text().catch(() => '');
-        console.log('[market-price] worker status:', r.status, body.slice(0, 300));
-        return null;
-      }
-      return r.json();
-    };
+    let data = await fetchProxy(true);
+    let prices = extractMarketPrices(data);
 
-    const [lookalike, feed] = await Promise.all([
-      fetchWorker(buildParams('lookalike')).catch(e => { console.log('[market-price] fetch err:', e.message); return null; }),
-      fetchWorker(buildParams('feed', '1')).catch(e => null),
-    ]);
+    // Fallback: manufacturer + year only (no model filter)
+    if (!prices && modelId) {
+      console.log('[market-price] retrying without model filter');
+      data = await fetchProxy(false);
+      prices = extractMarketPrices(data);
+    }
 
-    console.log('[market-price] lookalike raw:', JSON.stringify(lookalike)?.slice(0, 500));
-    console.log('[market-price] feed raw:', JSON.stringify(feed)?.slice(0, 200));
-
-    const prices = extractMarketPrices(lookalike);
-    const totalOnRoad = feed?.total ?? 0;
-
-    res.json({ marketPrice: { prices, totalOnRoad, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
+    console.log('[market-price] prices:', JSON.stringify(prices));
+    res.json({ marketPrice: { prices, totalOnRoad: prices?.count ?? 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
   } catch (err) { next(err); }
 });
 
 function extractMarketPrices(data) {
   if (!data) return null;
   try {
-    // Try nested data.data (lookalike response)
-    const inner = data?.data;
-
-    if (inner && !Array.isArray(inner)) {
-      const avg = Number(inner.price_average ?? inner.avgPrice ?? 0);
-      const min = Number(inner.price_min    ?? inner.minPrice ?? 0);
-      const max = Number(inner.price_max    ?? inner.maxPrice ?? 0);
-      const count = Number(inner.total      ?? inner.count   ?? 0);
-      if (avg > 0) return { avg, min, max, count };
+    // Raw Yad2 API response: { data: { items: [...] } }
+    const items = data?.data?.items;
+    if (Array.isArray(items) && items.length > 0) {
+      const priceArr = items
+        .map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0))
+        .filter(p => p > 0);
+      if (!priceArr.length) return null;
+      const sorted = [...priceArr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return {
+        avg:    Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
+        median: sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2),
+        min:    sorted[0],
+        max:    sorted[sorted.length - 1],
+        count:  priceArr.length,
+        total:  items.length,
+      };
     }
-
-    // Try top-level stats (proxy returns flat object)
-    const avg = Number(data.price_average ?? data.avgPrice ?? 0);
-    const min = Number(data.price_min    ?? data.minPrice ?? 0);
-    const max = Number(data.price_max    ?? data.maxPrice ?? 0);
-    const count = Number(data.total      ?? data.count   ?? 0);
+    // Fallback: flat stats
+    const avg = Number(data?.data?.price_average ?? data?.price_average ?? 0);
+    const min = Number(data?.data?.price_min    ?? data?.price_min    ?? 0);
+    const max = Number(data?.data?.price_max    ?? data?.price_max    ?? 0);
+    const count = Number(data?.data?.total      ?? data?.total        ?? 0);
     if (avg > 0) return { avg, min, max, count };
-
-    // Fallback: calculate from items array
-    const arr = Array.isArray(inner) ? inner : Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : [];
-    if (!arr.length) return null;
-    const priceArr = arr.map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0)).filter(p => p > 0);
-    if (!priceArr.length) return null;
-    return {
-      avg:   Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
-      min:   Math.min(...priceArr),
-      max:   Math.max(...priceArr),
-      count: priceArr.length,
-    };
+    return null;
   } catch { return null; }
 }
 
