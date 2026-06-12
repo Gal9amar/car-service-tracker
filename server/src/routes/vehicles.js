@@ -261,7 +261,7 @@ router.get('/:id/market-price', async (req, res, next) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: req.params.id, userId: req.user.id },
-      select: { manufacturer: true, model: true, year: true },
+      select: { manufacturer: true, model: true, year: true, manufacturerCode: true, modelId: true },
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
@@ -269,12 +269,13 @@ router.get('/:id/market-price', async (req, res, next) => {
     const proxySecret = process.env.YAD2_PROXY_SECRET;
     if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
 
+    // Proxy expects numeric codes and year as range "YYYY-YYYY"
     const buildParams = (type, rows = '50') => {
       const p = new URLSearchParams({ type, rows });
-      if (vehicle.manufacturer) p.set('manufacturer', vehicle.manufacturer);
-      if (vehicle.model)        p.set('model', vehicle.model);
-      if (vehicle.year)         p.set('year', String(vehicle.year));
-      if (proxySecret)          p.set('secret', proxySecret);
+      if (vehicle.manufacturerCode) p.set('manufacturer', String(vehicle.manufacturerCode));
+      if (vehicle.modelId)          p.set('model', String(vehicle.modelId));
+      if (vehicle.year)             p.set('year', `${vehicle.year}-${vehicle.year}`);
+      if (proxySecret)              p.set('secret', proxySecret);
       return p;
     };
 
