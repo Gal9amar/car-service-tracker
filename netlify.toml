@@ -5,7 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client", "bcryptjs", "express", "jsonwebtoken", "zod", "cors", "helmet", "cookie-parser", "express-rate-limit", "resend", "node-cron", "pdfkit", "multer", "passport", "passport-local", "passport-google-oauth20"]
+  external_node_modules = ["@prisma/client", "@prisma/adapter-libsql", "@libsql/client", "bcryptjs", "express", "jsonwebtoken", "zod", "cors", "helmet", "cookie-parser", "express-rate-limit", "nodemailer", "node-cron", "pdfkit", "multer", "passport", "passport-local", "passport-google-oauth20"]
 
 [[redirects]]
   from = "/api/*"
