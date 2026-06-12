@@ -288,9 +288,6 @@ function VehicleCard({ vehicle }) {
             <div className={`rounded-xl px-3 py-2 border ${vehicle.currentMileage && vehicle.lastService.nextServiceMileage <= vehicle.currentMileage ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-brand-50 dark:bg-brand-900/20 border-brand-100 dark:border-brand-800'}`}>
               <p className="text-xs text-brand-400 mb-0.5">טיפול הבא</p>
               <p className="text-sm font-black text-brand-600 dark:text-brand-400">{formatNumber(vehicle.lastService.nextServiceMileage)} ק״מ</p>
-              {vehicle.currentMileage && vehicle.lastService.nextServiceMileage > vehicle.currentMileage && (
-                <p className="text-xs text-surface-400">נותרו {formatNumber(vehicle.lastService.nextServiceMileage - vehicle.currentMileage)} ק״מ</p>
-              )}
               {vehicle.currentMileage && vehicle.lastService.nextServiceMileage <= vehicle.currentMileage && (
                 <p className="text-xs text-red-500 font-medium">⚠️ הגיע זמן טיפול!</p>
               )}

@@ -242,7 +242,7 @@ export default function VehicleDetailPage() {
             iconColor="text-emerald-500"
             iconBg="bg-emerald-50 dark:bg-emerald-900/30"
             title="טיפול תקופתי"
-            subtitle={`בעוד ${formatNumber(lastService.nextServiceMileage - (vehicle.currentMileage || 0))} ק״מ`}
+            subtitle={`יעד: ${formatNumber(lastService.nextServiceMileage)} ק״מ`}
             right={`${formatNumber(lastService.nextServiceMileage)} ק״מ`}
           />
         </Section>
@@ -574,7 +574,26 @@ function ServicesSection({ vehicleId, services, onRefresh }) {
             <div><label className="label">עלות (₪)</label><input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} className="input" placeholder="0" required dir="ltr" /></div>
             <div><label className="label">קילומטראז׳</label><input type="number" value={form.mileage} onChange={e => setForm({...form, mileage: e.target.value})} className="input" placeholder="120000" dir="ltr" /></div>
             {form.serviceType === 'PERIODIC' && (
-              <div><label className="label">ק״מ לטיפול הבא</label><input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="130000" dir="ltr" /></div>
+              <div className="col-span-2">
+                <label className="label">ק״מ לטיפול הבא</label>
+                <div className="flex gap-2 mb-2">
+                  {[10000, 12000, 15000].map(interval => (
+                    <button
+                      key={interval}
+                      type="button"
+                      onClick={() => setForm({ ...form, nextServiceMileage: String((parseInt(form.mileage) || 0) + interval) })}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        form.nextServiceMileage && parseInt(form.nextServiceMileage) === (parseInt(form.mileage) || 0) + interval
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : 'border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-300 hover:border-brand-400 hover:text-brand-600'
+                      }`}
+                    >
+                      +{(interval / 1000).toLocaleString('he-IL')}K ק״מ
+                    </button>
+                  ))}
+                </div>
+                <input type="number" value={form.nextServiceMileage} onChange={e => setForm({...form, nextServiceMileage: e.target.value})} className="input" placeholder="הזן ידנית..." dir="ltr" />
+              </div>
             )}
           </div>
           <div><label className="label">הערות</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="input min-h-[56px]" placeholder="פרטים נוספים..." /></div>
