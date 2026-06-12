@@ -14,15 +14,25 @@
     background-color: #F0F4F8;
   }
 
+  .dark body {
+    background-color: #080E15;
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #A8BDD0; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #7896B0; }
+
+  .dark ::-webkit-scrollbar-thumb { background: #2C3E55; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #3D5570; }
 }
 
 @layer components {
   .card {
     @apply bg-white rounded-2xl shadow-sm;
+  }
+  .dark .card {
+    @apply bg-surface-800 border border-surface-700;
   }
 
   /* BYD gradient helper */
@@ -47,6 +57,8 @@
   }
   .btn-secondary:hover { @apply bg-surface-200; }
   .btn-secondary:active { transform: scale(0.98); }
+  .dark .btn-secondary { @apply bg-surface-700 text-surface-200; }
+  .dark .btn-secondary:hover { @apply bg-surface-600; }
 
   .btn-danger {
     @apply bg-red-500 text-white font-medium px-5 py-2.5 rounded-xl transition-all duration-200;
@@ -59,10 +71,13 @@
   }
   .input:focus { @apply outline-none ring-2 ring-brand-500 border-transparent; }
   .input::placeholder { @apply text-surface-400; }
+  .dark .input { @apply bg-surface-800 border-surface-700 text-surface-100; }
+  .dark .input::placeholder { @apply text-surface-500; }
 
   .label {
     @apply block text-sm font-medium text-surface-600 mb-1.5;
   }
+  .dark .label { @apply text-surface-400; }
 
   .fade-in {
     animation: fadeIn 0.3s ease-out;

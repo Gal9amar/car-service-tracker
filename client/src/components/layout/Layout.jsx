@@ -14,11 +14,11 @@ export default function Layout() {
   };
 
   const navBase = 'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors';
-  const navActive = 'text-brand-600';
-  const navInactive = 'text-surface-400';
+  const navActive = 'text-brand-600 dark:text-brand-400';
+  const navInactive = 'text-surface-400 dark:text-surface-500';
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface-50">
+    <div className="min-h-screen flex flex-col bg-surface-50 dark:bg-surface-950">
 
       {/* ── Gradient top header ── */}
       <header
@@ -66,9 +66,10 @@ export default function Layout() {
       <nav className="fixed bottom-0 inset-x-0 z-50">
         <div className="max-w-2xl mx-auto px-3 pb-3">
           <div
-            className="flex items-end h-[62px] px-2 relative rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,60,130,0.14)' }}
+            className="flex items-end h-[62px] px-2 relative rounded-2xl dark:border dark:border-surface-700/50"
+            style={{ background: 'rgba(255,255,255,0.93)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,60,130,0.14)' }}
           >
+
             {/* Dashboard */}
             <NavLink to="/dashboard" className={({ isActive }) => `${navBase} ${isActive ? navActive : navInactive}`}>
               {({ isActive }) => (
