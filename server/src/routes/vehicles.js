@@ -269,16 +269,22 @@ router.get('/:id/market-price', async (req, res, next) => {
     const proxySecret = process.env.YAD2_PROXY_SECRET;
     if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
 
-    const headers = { 'Authorization': `Bearer ${proxySecret}` };
-    const base = new URLSearchParams({ rows: '50' });
-    if (vehicle.manufacturer) base.set('manufacturer', vehicle.manufacturer);
-    if (vehicle.model) base.set('model', vehicle.model);
-    if (vehicle.year) base.set('year', String(vehicle.year));
+    const buildParams = (type, rows = '50') => {
+      const p = new URLSearchParams({ type, rows });
+      if (vehicle.manufacturer) p.set('manufacturer', vehicle.manufacturer);
+      if (vehicle.model)        p.set('model', vehicle.model);
+      if (vehicle.year)         p.set('year', String(vehicle.year));
+      if (proxySecret)          p.set('secret', proxySecret);
+      return p;
+    };
 
     const [lookalike, feed] = await Promise.all([
-      fetch(`${proxyUrl}?type=lookalike&${base}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${proxyUrl}?type=feed&${base}&rows=1`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${proxyUrl}?${buildParams('lookalike')}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${proxyUrl}?${buildParams('feed', '1')}`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
+
+    console.log('[market-price] lookalike raw:', JSON.stringify(lookalike)?.slice(0, 500));
+    console.log('[market-price] feed raw:', JSON.stringify(feed)?.slice(0, 200));
 
     const prices = extractMarketPrices(lookalike);
     const totalOnRoad = feed?.total ?? 0;
@@ -290,22 +296,34 @@ router.get('/:id/market-price', async (req, res, next) => {
 function extractMarketPrices(data) {
   if (!data) return null;
   try {
-    const stats = data?.data;
-    if (!stats) return null;
-    const avg = Number(stats.price_average ?? stats.avgPrice ?? 0);
-    const min = Number(stats.price_min ?? stats.minPrice ?? 0);
-    const max = Number(stats.price_max ?? stats.maxPrice ?? 0);
-    const count = Number(stats.total ?? stats.count ?? 0);
+    // Try nested data.data (lookalike response)
+    const inner = data?.data;
+
+    if (inner && !Array.isArray(inner)) {
+      const avg = Number(inner.price_average ?? inner.avgPrice ?? 0);
+      const min = Number(inner.price_min    ?? inner.minPrice ?? 0);
+      const max = Number(inner.price_max    ?? inner.maxPrice ?? 0);
+      const count = Number(inner.total      ?? inner.count   ?? 0);
+      if (avg > 0) return { avg, min, max, count };
+    }
+
+    // Try top-level stats (proxy returns flat object)
+    const avg = Number(data.price_average ?? data.avgPrice ?? 0);
+    const min = Number(data.price_min    ?? data.minPrice ?? 0);
+    const max = Number(data.price_max    ?? data.maxPrice ?? 0);
+    const count = Number(data.total      ?? data.count   ?? 0);
     if (avg > 0) return { avg, min, max, count };
-    const arr = Array.isArray(data?.data) ? data.data : [];
+
+    // Fallback: calculate from items array
+    const arr = Array.isArray(inner) ? inner : Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : [];
     if (!arr.length) return null;
-    const prices = arr.map(i => Number(i.price ?? i.Price ?? 0)).filter(p => p > 0);
-    if (!prices.length) return null;
+    const priceArr = arr.map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0)).filter(p => p > 0);
+    if (!priceArr.length) return null;
     return {
-      avg: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-      count: prices.length,
+      avg:   Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
+      min:   Math.min(...priceArr),
+      max:   Math.max(...priceArr),
+      count: priceArr.length,
     };
   } catch { return null; }
 }
