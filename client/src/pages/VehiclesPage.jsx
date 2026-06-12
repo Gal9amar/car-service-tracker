@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { vehicles as vehiclesApi } from '../services/api';
-import { Plus, ChevronLeft, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
 import { formatDate } from '../utils/constants';
 
 function testStatus(testExpiry) {
@@ -141,33 +141,28 @@ function VehicleCard({ vehicle, onEdit, onDelete }) {
   return (
     <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-5 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all">
 
-      {/* Top: make/model + action buttons */}
-      <div className="flex items-center justify-between mb-4">
-        <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">🚗</div>
-          <div className="min-w-0">
-            <p className="font-bold text-surface-900 dark:text-white leading-tight truncate">
-              {vehicle.manufacturer} {vehicle.model}
-            </p>
-            {vehicle.nickname && <p className="text-xs text-surface-400 truncate">{vehicle.nickname}</p>}
-          </div>
-        </Link>
-        <div className="flex items-center gap-1 shrink-0 mr-2">
-          <button
-            onClick={onEdit}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors">
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            <Trash2 size={16} />
-          </button>
-          <Link to={`/vehicles/${vehicle.id}`}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-brand-500 transition-colors">
-            <ChevronLeft size={18} />
-          </Link>
+      {/* Top: icon + full vehicle name */}
+      <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 mb-2">
+        <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">🚗</div>
+        <div>
+          <p className="font-bold text-surface-900 dark:text-white leading-tight">
+            {vehicle.manufacturer} {vehicle.model}
+          </p>
+          {vehicle.nickname && <p className="text-xs text-surface-400">{vehicle.nickname}</p>}
         </div>
+      </Link>
+
+      {/* Action buttons row — text style */}
+      <div className="flex gap-4 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
+        <Link to={`/vehicles/${vehicle.id}`} className="text-xs text-brand-600 dark:text-brand-400 font-medium hover:underline">
+          לפרטי הרכב ←
+        </Link>
+        <button onClick={onEdit} className="text-xs text-surface-400 hover:text-brand-500 font-medium transition-colors">
+          ערוך
+        </button>
+        <button onClick={onDelete} className="text-xs text-surface-400 hover:text-red-500 font-medium transition-colors">
+          מחק
+        </button>
       </div>
 
       {/* Israeli plate */}
