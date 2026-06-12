@@ -389,13 +389,13 @@ router.get('/:id/market-price', async (req, res, next) => {
     };
 
     let data = await fetchProxy(true);
-    let prices = extractMarketPrices(data);
+    let prices = extractMarketPrices(data, vehicle.year);
 
     // Retry without year filter if no results
     if (!prices && vehicle.year) {
       console.log('[market-price] retrying without year filter');
       data = await fetchProxy(false);
-      prices = extractMarketPrices(data);
+      prices = extractMarketPrices(data, vehicle.year);
     }
 
     console.log('[market-price] prices:', JSON.stringify(prices));
@@ -403,37 +403,47 @@ router.get('/:id/market-price', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-function extractMarketPrices(data) {
+function extractMarketPrices(data, filterYear) {
   if (!data) return null;
   try {
     // Proxy returns { data: [...] } — flat array
-    const items = Array.isArray(data?.data) ? data.data
-      : Array.isArray(data?.data?.items)    ? data.data.items
-      : Array.isArray(data?.items)          ? data.items
+    let items = Array.isArray(data?.data) ? data.data
+      : Array.isArray(data?.data?.items)  ? data.data.items
+      : Array.isArray(data?.items)        ? data.items
       : null;
 
-    if (items && items.length > 0) {
-      const priceArr = items
-        .map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0))
-        .filter(p => p > 0);
-      if (!priceArr.length) return null;
-      const sorted = [...priceArr].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      return {
-        avg:    Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
-        median: sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2),
-        min:    sorted[0],
-        max:    sorted[sorted.length - 1],
-        count:  priceArr.length,
-      };
+    if (!items || !items.length) {
+      // Fallback: pre-computed stats
+      const avg = Number(data?.data?.price_average ?? data?.price_average ?? 0);
+      const min = Number(data?.data?.price_min    ?? data?.price_min    ?? 0);
+      const max = Number(data?.data?.price_max    ?? data?.price_max    ?? 0);
+      const count = Number(data?.data?.total      ?? data?.total        ?? 0);
+      if (avg > 0) return { avg, min, max, count };
+      return null;
     }
-    // Fallback: pre-computed stats
-    const avg = Number(data?.data?.price_average ?? data?.price_average ?? 0);
-    const min = Number(data?.data?.price_min    ?? data?.price_min    ?? 0);
-    const max = Number(data?.data?.price_max    ?? data?.price_max    ?? 0);
-    const count = Number(data?.data?.total      ?? data?.total        ?? 0);
-    if (avg > 0) return { avg, min, max, count };
-    return null;
+
+    // Filter by year (same as carinfo-bot), fall back to all if too few
+    if (filterYear) {
+      const yearItems = items.filter(i => {
+        const y = i.yearOfProduction ?? i.year ?? i.Year;
+        return y === filterYear || y === String(filterYear);
+      });
+      if (yearItems.length >= 3) items = yearItems;
+    }
+
+    const priceArr = items
+      .map(i => Number(i.price ?? i.Price ?? i.price_total ?? 0))
+      .filter(p => p > 0);
+    if (!priceArr.length) return null;
+    const sorted = [...priceArr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return {
+      avg:    Math.round(priceArr.reduce((a, b) => a + b, 0) / priceArr.length),
+      median: sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2),
+      min:    sorted[0],
+      max:    sorted[sorted.length - 1],
+      count:  priceArr.length,
+    };
   } catch { return null; }
 }
 
