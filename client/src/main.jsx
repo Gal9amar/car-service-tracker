@@ -6,9 +6,9 @@ import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
-// Apply saved theme before render to avoid flash
+// Apply saved theme — default is always light (BYD aesthetic)
 const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+if (savedTheme === 'dark') {
   document.documentElement.classList.add('dark');
 }
 
