@@ -354,8 +354,10 @@ router.get('/:id/market-price', async (req, res, next) => {
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    const workerUrl = process.env.YAD2_CF_WORKER_URL;
-    if (!workerUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    // Use IP proxy — accepts manufacturer+model+year+rows+secret
+    const proxyUrl = process.env.YAD2_PROXY_URL;
+    if (!proxyUrl) return res.status(503).json({ error: 'Market price service not configured.' });
+    const proxySecret = process.env.YAD2_PROXY_SECRET || 'carinfo2026';
 
     const manufacturerId = _getManufacturerId(vehicle.manufacturer);
     console.log('[market-price] manufacturer:', vehicle.manufacturer, '→', manufacturerId, '| model:', vehicle.model, '| year:', vehicle.year);
@@ -371,28 +373,28 @@ router.get('/:id/market-price', async (req, res, next) => {
       return res.json({ marketPrice: { prices: null, totalOnRoad: 0, manufacturer: vehicle.manufacturer, model: vehicle.model, year: vehicle.year } });
     }
 
-    // CF Worker accepts: model (required numeric), year (YYYY-YYYY) — no manufacturer, no rows
-    const fetchWorker = async (withYear) => {
-      const p = new URLSearchParams({ model: modelId });
+    // IP proxy requires: model (numeric), secret — manufacturer/year/rows are optional
+    const fetchProxy = async (withYear) => {
+      const p = new URLSearchParams({ manufacturer: manufacturerId, model: modelId, rows: '100', secret: proxySecret });
       if (withYear && vehicle.year) p.set('year', `${vehicle.year}-${vehicle.year}`);
-      const url = `${workerUrl}?${p}`;
-      console.log('[market-price] url:', url);
+      const url = `${proxyUrl}?${p}`;
+      console.log('[market-price] url:', url.replace(proxySecret, '***'));
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 12000);
       try {
         const r = await fetch(url, { signal: ctrl.signal });
-        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] worker:', r.status, b.slice(0, 200)); return null; }
+        if (!r.ok) { const b = await r.text().catch(() => ''); console.error('[market-price] proxy:', r.status, b.slice(0, 200)); return null; }
         return r.json();
       } finally { clearTimeout(t); }
     };
 
-    // Try with year filter; fall back to all years if no results
-    let data = await fetchWorker(true);
+    let data = await fetchProxy(true);
     let prices = extractMarketPrices(data);
 
+    // Retry without year filter if no results
     if (!prices && vehicle.year) {
       console.log('[market-price] retrying without year filter');
-      data = await fetchWorker(false);
+      data = await fetchProxy(false);
       prices = extractMarketPrices(data);
     }
 
