@@ -30,6 +30,9 @@ async function refreshAllVehicleGovData() {
       const fresh = await lookupVehicle(v.licensePlate);
       if (!fresh) { failed++; continue; }
 
+      // Fetch old recalls BEFORE updating so we can detect new ones
+      const oldData = await prisma.vehicle.findUnique({ where: { id: v.id }, select: { recalls: true } });
+
       await prisma.vehicle.update({
         where: { id: v.id },
         data: {
@@ -70,24 +73,27 @@ async function refreshAllVehicleGovData() {
       refreshed++;
       await new Promise(r => setTimeout(r, 300));
 
-      // שלח מייל ריקול אם יש ריקולים חדשים
+      // שלח מייל ריקול אם יש ריקולים חדשים (השוואה לנתוני לפני העדכון)
       if (fresh.recalls?.length > 0 && fresh.hasActiveRecall) {
         try {
-          const fullVehicle = await prisma.vehicle.findUnique({
-            where: { id: v.id },
-            include: { user: { select: { email: true, name: true } } },
-          });
-          const prevRecalls = fullVehicle.recalls ? JSON.parse(fullVehicle.recalls) : [];
+          let prevRecalls = [];
+          try { prevRecalls = oldData?.recalls ? JSON.parse(oldData.recalls) : []; } catch {}
           const prevIds = new Set(prevRecalls.map(r => r.id));
           const newRecalls = fresh.recalls.filter(r => !prevIds.has(r.id));
 
-          if (newRecalls.length > 0 && fullVehicle.user?.email) {
-            await sendEmail({
-              to: fullVehicle.user.email,
-              subject: `⚠️ ריקול חדש לרכב שלך: ${fullVehicle.manufacturer} ${fullVehicle.model}`,
-              html: buildRecallAlertEmailHtml({ userName: fullVehicle.user.name, vehicle: fullVehicle, recalls: newRecalls }),
+          if (newRecalls.length > 0) {
+            const fullVehicle = await prisma.vehicle.findUnique({
+              where: { id: v.id },
+              include: { user: { select: { email: true, name: true } } },
             });
-            console.log(`📧 Recall alert sent to ${fullVehicle.user.email}`);
+            if (fullVehicle?.user?.email) {
+              await sendEmail({
+                to: fullVehicle.user.email,
+                subject: `⚠️ ריקול חדש לרכב שלך: ${fullVehicle.manufacturer} ${fullVehicle.model}`,
+                html: buildRecallAlertEmailHtml({ userName: fullVehicle.user.name, vehicle: fullVehicle, recalls: newRecalls }),
+              });
+              console.log(`📧 Recall alert sent to ${fullVehicle.user.email}`);
+            }
           }
         } catch (e) { console.error('Recall email failed:', e.message); }
       }
@@ -254,17 +260,27 @@ async function checkTestExpiry30Days() {
   console.log('🔍 Checking test expiry 30 days...', new Date().toISOString());
   const now  = new Date();
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const in7  = new Date(Date.now() +  7 * 24 * 60 * 60 * 1000);
 
   const vehicles = await prisma.vehicle.findMany({
     where: { testExpiry: { gte: now, lte: in30 } },
     include: { user: { select: { email: true, name: true } } },
   });
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
   for (const v of vehicles) {
     if (!v.user?.email) continue;
     const daysLeft = Math.ceil((new Date(v.testExpiry) - now) / (1000 * 60 * 60 * 24));
     if (daysLeft > 30) continue;
+
+    // Skip vehicles in the 7-day window — handled by checkAndSendReminders via the TEST reminder
+    if (daysLeft <= 7) continue;
+
+    // Throttle: send at most once per 7 days in the 30-day window
+    const testReminder = await prisma.reminder.findFirst({
+      where: { vehicleId: v.id, reminderType: 'TEST', isActive: true },
+    });
+    if (testReminder?.lastNotified && new Date(testReminder.lastNotified) > sevenDaysAgo) continue;
 
     const fmt = d => new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
     const urgent = daysLeft <= 7;
@@ -293,6 +309,9 @@ async function checkTestExpiry30Days() {
         html,
       });
       console.log(`📧 Test expiry sent to ${v.user.email} (${daysLeft} days)`);
+      if (testReminder) {
+        await prisma.reminder.update({ where: { id: testReminder.id }, data: { lastNotified: new Date() } });
+      }
     } catch (e) { console.error('Test expiry email failed:', e.message); }
   }
 }

@@ -11,11 +11,11 @@ router.use(authenticate);
 
 // ── helpers ───────────────────────────────────────────────────────────────
 function parseVehicle(v) {
-  return {
-    ...v,
-    ownershipHistory: v.ownershipHistory ? JSON.parse(v.ownershipHistory) : [],
-    recalls:          v.recalls          ? JSON.parse(v.recalls)          : [],
-  };
+  let ownershipHistory = [];
+  let recalls = [];
+  try { ownershipHistory = v.ownershipHistory ? JSON.parse(v.ownershipHistory) : []; } catch {}
+  try { recalls          = v.recalls          ? JSON.parse(v.recalls)          : []; } catch {}
+  return { ...v, ownershipHistory, recalls };
 }
 
 // GET /api/vehicles/lookup/:plate

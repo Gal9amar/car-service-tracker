@@ -1,35 +1,33 @@
 // services/emailService.js
-// שירות שליחת מיילים דרך Resend
+// שירות שליחת מיילים דרך Gmail SMTP (nodemailer + App Password)
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'מעקב טיפולים <onboarding@resend.dev>';
-const RESEND_ALLOWED_EMAIL = process.env.RESEND_ALLOWED_EMAIL || 'ga9service@gmail.com';
+import nodemailer from 'nodemailer';
+
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+  });
+}
 
 export async function sendEmail({ to, subject, html }) {
-  if (!RESEND_API_KEY) {
-    console.warn('⚠️  RESEND_API_KEY not set — skipping email');
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+    console.warn('⚠️  GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email');
     return;
   }
 
-  const recipient = RESEND_ALLOWED_EMAIL || to;
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to: recipient, subject, html }),
+  const info = await createTransporter().sendMail({
+    from: `"מעקב טיפולים לרכב" <${GMAIL_USER}>`,
+    to,
+    subject,
+    html,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    console.error('Resend error:', err);
-    throw new Error(err.message || 'Failed to send email');
-  }
-
-  console.log(`📧 Email sent to ${recipient}: ${subject}`);
-  return res.json();
+  console.log(`📧 Email sent to ${to}: ${subject} [${info.messageId}]`);
+  return info;
 }
 
 // ─── עיצוב בסיסי משותף ────────────────────────────────────────────────────────
