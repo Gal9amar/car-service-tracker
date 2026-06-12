@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
               {/* Category breakdown */}
               {annualData.byCategory.length > 0 ? (
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 mb-3">
                   {annualData.byCategory.slice(0, 4).map(c => {
                     const pct = annualData.expenses > 0 ? Math.round((c.amount / annualData.expenses) * 100) : 0;
                     return (
@@ -251,6 +251,44 @@ export default function DashboardPage() {
               ) : annualData.total === 0 ? (
                 <p className="text-center text-sm text-surface-400 py-2">אין נתונים ב-{annualYear}</p>
               ) : null}
+
+              {/* Services list */}
+              {annualData.servicesList?.length > 0 && (
+                <div className="border-t border-surface-100 dark:border-surface-700 pt-3">
+                  <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">טיפולים</p>
+                  <div className="space-y-1.5">
+                    {annualData.servicesList.map(s => (
+                      <div key={s.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: '#F7FAFF' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-surface-600 font-mono" dir="ltr">{s.licensePlate}</span>
+                          <span className="text-[11px] text-surface-400">{formatDate(s.date)}</span>
+                        </div>
+                        <span className="text-xs font-bold" style={{ color: '#0066CC' }} dir="ltr">
+                          {s.cost > 0 ? `₪${s.cost.toLocaleString('he-IL')}` : '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expenses list */}
+              {annualData.expensesList?.length > 0 && (
+                <div className="border-t border-surface-100 dark:border-surface-700 pt-3 mt-3">
+                  <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">הוצאות</p>
+                  <div className="space-y-1.5">
+                    {annualData.expensesList.map(e => (
+                      <div key={e.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: '#F7FAFF' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-surface-600 font-mono" dir="ltr">{e.licensePlate}</span>
+                          <span className="text-[11px] text-surface-400">{formatDate(e.date)}</span>
+                        </div>
+                        <span className="text-xs font-bold text-surface-700" dir="ltr">₪{e.amount.toLocaleString('he-IL')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
         </div>

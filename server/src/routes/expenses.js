@@ -138,7 +138,7 @@ router.get('/annual', async (req, res, next) => {
     const expWhere = { vehicle: { userId }, date: { gte: from, lte: to } };
     const svcWhere = { vehicle: { userId }, date: { gte: from, lte: to } };
 
-    const [expAgg, svcAgg, byCategory] = await Promise.all([
+    const [expAgg, svcAgg, byCategory, servicesList, expensesList] = await Promise.all([
       prisma.expense.aggregate({ where: expWhere, _sum: { amount: true } }),
       prisma.service.aggregate({ where: svcWhere, _sum: { cost: true } }),
       prisma.expense.groupBy({
@@ -146,6 +146,29 @@ router.get('/annual', async (req, res, next) => {
         where: expWhere,
         _sum: { amount: true },
         orderBy: { _sum: { amount: 'desc' } },
+      }),
+      prisma.service.findMany({
+        where: svcWhere,
+        select: {
+          id: true,
+          type: true,
+          cost: true,
+          date: true,
+          vehicle: { select: { licensePlate: true, manufacturer: true, model: true } },
+        },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.expense.findMany({
+        where: expWhere,
+        select: {
+          id: true,
+          category: true,
+          amount: true,
+          date: true,
+          description: true,
+          vehicle: { select: { licensePlate: true, manufacturer: true, model: true } },
+        },
+        orderBy: { date: 'desc' },
       }),
     ]);
 
@@ -159,6 +182,23 @@ router.get('/annual', async (req, res, next) => {
         services: servicesTotal,
         total: expensesTotal + servicesTotal,
         byCategory: byCategory.map(c => ({ category: c.category, amount: Number(c._sum.amount) || 0 })),
+        servicesList: servicesList.map(s => ({
+          id: s.id,
+          type: s.type,
+          cost: Number(s.cost) || 0,
+          date: s.date,
+          licensePlate: s.vehicle.licensePlate,
+          vehicleName: `${s.vehicle.manufacturer} ${s.vehicle.model}`,
+        })),
+        expensesList: expensesList.map(e => ({
+          id: e.id,
+          category: e.category,
+          amount: Number(e.amount) || 0,
+          date: e.date,
+          description: e.description,
+          licensePlate: e.vehicle.licensePlate,
+          vehicleName: `${e.vehicle.manufacturer} ${e.vehicle.model}`,
+        })),
       },
     });
   } catch (err) {
