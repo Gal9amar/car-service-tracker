@@ -1,7 +1,7 @@
 // services/reminderCron.js
 import cron from 'node-cron';
 import prisma from '../utils/prisma.js';
-import { sendEmail, buildReminderEmailHtml, buildInsuranceExpiryEmailHtml, buildRecallAlertEmailHtml } from './emailService.js';
+import { sendEmail, buildReminderEmailHtml, buildInsuranceExpiryEmailHtml, buildRecallAlertEmailHtml, buildTestExpiredEmailHtml, buildMonthlySummaryEmailHtml } from './emailService.js';
 import { lookupVehicle } from './vehicleLookup.js';
 
 const DAYS_BEFORE = 7;
@@ -185,8 +185,10 @@ export function startReminderCron() {
   cron.schedule('0 8 * * *', checkAndSendReminders,      { timezone: 'Asia/Jerusalem' });
   cron.schedule('0 8 * * *', checkInsuranceExpiry,       { timezone: 'Asia/Jerusalem' });
   cron.schedule('0 8 * * *', checkTestExpiry30Days,      { timezone: 'Asia/Jerusalem' });
+  cron.schedule('0 8 * * *', checkTestExpiredToday,      { timezone: 'Asia/Jerusalem' });
+  cron.schedule('0 8 1 * *', checkMonthlySummary,        { timezone: 'Asia/Jerusalem' });
   cron.schedule('0 3 * * 0', refreshAllVehicleGovData,   { timezone: 'Asia/Jerusalem' });
-  console.log('⏰ All crons scheduled (daily 08:00 + gov refresh Sunday 03:00)');
+  console.log('⏰ All crons scheduled (daily 08:00 + monthly 1st + gov refresh Sunday 03:00)');
 }
 
 // ── ביטוח: בדיקת פקיעה ───────────────────────────────────────────────────────
@@ -316,4 +318,73 @@ async function checkTestExpiry30Days() {
   }
 }
 
-export { checkAndSendReminders };
+// ── טסט פג היום ─────────────────────────────────────────────────────────────
+async function checkTestExpiredToday() {
+  console.log('⛔ Checking test expired today...', new Date().toISOString());
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { testExpiry: { gte: todayStart, lt: todayEnd } },
+    include: { user: { select: { email: true, name: true } } },
+  });
+
+  for (const v of vehicles) {
+    if (!v.user?.email) continue;
+    try {
+      await sendEmail({
+        to: v.user.email,
+        subject: `⛔ הטסט של ${v.manufacturer} ${v.model} פג היום!`,
+        html: buildTestExpiredEmailHtml({ userName: v.user.name, vehicle: v }),
+      });
+      console.log(`📧 Test expired today sent to ${v.user.email}`);
+    } catch (e) { console.error('Test expired email failed:', e.message); }
+  }
+}
+
+// ── סיכום חודשי ──────────────────────────────────────────────────────────────
+async function checkMonthlySummary() {
+  console.log('📊 Running monthly summary...', new Date().toISOString());
+  const now = new Date();
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1);
+  const month = prevMonthStart.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+  const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+
+  for (const user of users) {
+    if (!user.email) continue;
+
+    const [expenses, services] = await Promise.all([
+      prisma.expense.findMany({
+        where: { vehicle: { userId: user.id }, date: { gte: prevMonthStart, lt: prevMonthEnd } },
+        select: { category: true, amount: true },
+      }),
+      prisma.service.findMany({
+        where: { vehicle: { userId: user.id }, date: { gte: prevMonthStart, lt: prevMonthEnd } },
+        select: { cost: true },
+      }),
+    ]);
+
+    if (expenses.length === 0 && services.length === 0) continue;
+
+    const byCategory = {};
+    for (const e of expenses) {
+      byCategory[e.category] = (byCategory[e.category] || 0) + Number(e.amount);
+    }
+    const expenseTotal = expenses.reduce((s, e) => s + Number(e.amount), 0);
+    const serviceTotal = services.reduce((s, s2) => s + Number(s2.cost || 0), 0);
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `📊 סיכום חודשי — ${month}`,
+        html: buildMonthlySummaryEmailHtml({ userName: user.name, month, byCategory, serviceTotal, serviceCount: services.length, expenseTotal }),
+      });
+      console.log(`📧 Monthly summary sent to ${user.email}`);
+    } catch (e) { console.error('Monthly summary email failed:', e.message); }
+  }
+}
+
+export { checkAndSendReminders, checkTestExpiredToday, checkMonthlySummary };

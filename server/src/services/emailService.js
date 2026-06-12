@@ -523,6 +523,145 @@ export function buildOtpEmailHtml({ userName, code, expiresMinutes = 10 }) {
   });
 }
 
+// ─── הוצאה גבוהה ──────────────────────────────────────────────────────────────
+
+export function buildLargeExpenseEmailHtml({ userName, expense, vehicle }) {
+  const CATEGORY_LABELS = {
+    FUEL: 'דלק', PARKING: 'חניה', FINE: 'קנס', INSURANCE: 'ביטוח',
+    LICENSE: 'רישוי', TOLL: 'כביש אגרה', WASH: 'שטיפה', ACCESSORIES: 'אביזרים', OTHER: 'אחר',
+  };
+  const fmt = d => new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const rows = [
+    ['קטגוריה', CATEGORY_LABELS[expense.category] || expense.category],
+    ['סכום', `₪${Number(expense.amount).toLocaleString('he-IL')}`],
+    ['תאריך', fmt(expense.date)],
+    expense.description && ['תיאור', expense.description],
+  ].filter(Boolean);
+
+  const content = `
+    ${greeting(userName)}
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 22px;line-height:1.7;">
+      נרשמה הוצאה גבוהה לרכב <strong style="color:#92400E;">${vehicle.manufacturer} ${vehicle.model}</strong>.
+    </p>
+    ${dataTable(rows)}
+    ${infoBox('💡 תיעוד הוצאות עוזר לך לעקוב אחר עלויות הרכב ולתכנן תקציב נכון.')}`;
+
+  return base({
+    headerIcon: '💸',
+    headerTitle: `הוצאה גבוהה: ₪${Number(expense.amount).toLocaleString('he-IL')}`,
+    headerSubtitle: `${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}`,
+    headerColor: '#D97706',
+    content,
+  });
+}
+
+// ─── טסט פג היום ──────────────────────────────────────────────────────────────
+
+export function buildTestExpiredEmailHtml({ userName, vehicle }) {
+  const fmt = d => new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const rows = [
+    ['רכב', `${vehicle.manufacturer} ${vehicle.model}`],
+    ['מספר לוחית', vehicle.licensePlate],
+    ['תאריך פקיעה', fmt(vehicle.testExpiry)],
+  ];
+
+  const content = `
+    ${greeting(userName)}
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 22px;line-height:1.7;">
+      הטסט השנתי של <strong style="color:#DC2626;">${vehicle.manufacturer} ${vehicle.model}</strong> פג <strong>היום</strong>.
+    </p>
+    ${dataTable(rows)}
+    ${infoBox('🚨 <strong>חשוב:</strong> נסיעה עם רכב ללא טסט תקף אסורה חוקית ועלולה לגרור קנסות כבדים. יש לקבוע תאריך טסט בהקדם האפשרי.', '#991B1B', '#FEF2F2', '#FECACA')}`;
+
+  return base({
+    headerIcon: '⛔',
+    headerTitle: 'הטסט השנתי פג היום!',
+    headerSubtitle: `${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}`,
+    headerColor: '#DC2626',
+    content,
+  });
+}
+
+// ─── סיכום חודשי ──────────────────────────────────────────────────────────────
+
+export function buildMonthlySummaryEmailHtml({ userName, month, byCategory, serviceTotal, serviceCount, expenseTotal }) {
+  const CATEGORY_LABELS = {
+    FUEL: 'דלק', PARKING: 'חניה', FINE: 'קנס', INSURANCE: 'ביטוח',
+    LICENSE: 'רישוי', TOLL: 'כביש אגרה', WASH: 'שטיפה', ACCESSORIES: 'אביזרים', OTHER: 'אחר',
+  };
+
+  const categoryRows = Object.entries(byCategory)
+    .sort(([, a], [, b]) => b - a)
+    .map(([cat, total]) => [CATEGORY_LABELS[cat] || cat, `₪${Number(total).toLocaleString('he-IL')}`]);
+
+  if (serviceTotal > 0) {
+    categoryRows.push(['טיפולי רכב', `₪${Number(serviceTotal).toLocaleString('he-IL')}`]);
+  }
+
+  const grand = expenseTotal + serviceTotal;
+
+  const content = `
+    ${greeting(userName)}
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 22px;line-height:1.7;">
+      הנה סיכום ההוצאות שלך בחודש <strong style="color:#92400E;">${month}</strong>:
+    </p>
+    ${categoryRows.length > 0 ? dataTable(categoryRows) : '<p style="font-family:\'Heebo\',Arial,sans-serif;font-size:14px;color:#78716C;margin:0 0 20px;">לא נרשמו הוצאות בחודש זה.</p>'}
+    ${infoBox(`💰 <strong>סה"כ הוצאות החודש: ₪${Number(grand).toLocaleString('he-IL')}</strong>${serviceCount > 0 ? ` (כולל ${serviceCount} טיפולים)` : ''}`, '#1D6FA4', '#EFF6FF', '#BFDBFE')}`;
+
+  return base({
+    headerIcon: '📊',
+    headerTitle: `סיכום חודשי — ${month}`,
+    headerSubtitle: 'סיכום הוצאות ופעילות רכב',
+    headerColor: '#1D6FA4',
+    content,
+  });
+}
+
+// ─── תזכורת קילומטראז' ────────────────────────────────────────────────────────
+
+export function buildMileageReminderEmailHtml({ userName, reminders, currentMileage, vehicle }) {
+  const rows = reminders.map(r => {
+    const kmLeft = r.dueMileage - currentMileage;
+    return `
+      <tr>
+        <td style="padding:14px 16px;border-bottom:1px solid #FDE8C8;vertical-align:top;">
+          <p style="font-family:'Heebo',Arial,sans-serif;font-size:14px;font-weight:700;color:#1C1917;margin:0 0 4px;">${r.title}</p>
+          <p style="font-family:'Heebo',Arial,sans-serif;font-size:12px;color:#78716C;margin:0;">${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}</p>
+        </td>
+        <td style="padding:14px 16px;border-bottom:1px solid #FDE8C8;vertical-align:top;text-align:left;white-space:nowrap;">
+          <p style="font-family:'Heebo',Arial,sans-serif;font-size:13px;color:#57534E;margin:0 0 6px;">${r.dueMileage.toLocaleString('he-IL')} ק"מ</p>
+          ${badge(`עוד ${kmLeft.toLocaleString('he-IL')} ק"מ`, '#92400E', '#FEF3C7')}
+        </td>
+      </tr>`;
+  }).join('');
+
+  const content = `
+    ${greeting(userName)}
+    <p style="font-family:'Heebo',Arial,sans-serif;font-size:15px;color:#44403C;margin:0 0 22px;line-height:1.7;">
+      הרכב שלך מתקרב למועד תזכורת קילומטראז'. קילומטראז' נוכחי: <strong style="color:#92400E;">${currentMileage.toLocaleString('he-IL')} ק"מ</strong>.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1.5px solid #FDE8C8;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+      <thead>
+        <tr style="background:#FEF3C7;">
+          <th style="padding:11px 16px;text-align:right;font-family:'Heebo',Arial,sans-serif;font-size:12px;font-weight:700;color:#92400E;letter-spacing:0.5px;border-bottom:1.5px solid #FDE8C8;">תזכורת</th>
+          <th style="padding:11px 16px;text-align:left;font-family:'Heebo',Arial,sans-serif;font-size:12px;font-weight:700;color:#92400E;letter-spacing:0.5px;border-bottom:1.5px solid #FDE8C8;">קילומטראז' יעד</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${infoBox('💡 עדכן את הקילומטראז\' באפליקציה לאחר כל טיפול כדי לקבל תזכורות מדויקות.')}`;
+
+  return base({
+    headerIcon: '🏁',
+    headerTitle: `תזכורת קילומטראז' מתקרבת`,
+    headerSubtitle: `${vehicle.manufacturer} ${vehicle.model} · ${vehicle.licensePlate}`,
+    headerColor: '#B45309',
+    content,
+  });
+}
+
 // ─── ריקול ────────────────────────────────────────────────────────────────────
 
 export function buildRecallAlertEmailHtml({ userName, vehicle, recalls }) {
