@@ -1,15 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Car, PlusCircle, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Car, Plus, Settings, LogOut, ShieldCheck } from 'lucide-react';
 
 const ADMIN_EMAIL = 'ga9service@gmail.com';
-
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'דשבורד' },
-  { to: '/vehicles', icon: Car, label: 'רכבים' },
-  { to: '/vehicles/new', icon: PlusCircle, label: 'הוסף רכב' },
-  { to: '/settings', icon: Settings, label: 'אזור אישי' },
-];
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -20,76 +13,117 @@ export default function Layout() {
     navigate('/login');
   };
 
+  const navBase = 'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors';
+  const navActive = 'text-brand-600 dark:text-brand-400';
+  const navInactive = 'text-surface-400 dark:text-surface-500';
+
   return (
     <div className="min-h-screen flex flex-col bg-surface-50 dark:bg-surface-950">
 
-      {/* Top header */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 px-4 py-3 flex items-center justify-between">
-        <h1 className="font-display font-bold text-lg text-brand-700 dark:text-brand-400 flex items-center gap-2">
-          🚗 מעקב טיפולים
+      {/* ── Gradient top header ── */}
+      <header
+        className="sticky top-0 z-40 px-5 py-3 flex items-center justify-between"
+        style={{ background: 'linear-gradient(135deg, #003D82 0%, #0066CC 60%, #00B4A0 100%)' }}
+      >
+        <h1 className="font-display font-bold text-lg text-white flex items-center gap-2 select-none">
+          🚗 CarTrack
         </h1>
         <div className="flex items-center gap-2">
           {user?.email === ADMIN_EMAIL && (
             <NavLink
               to="/admin"
               className={({ isActive }) =>
-                `p-2 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold ${
-                  isActive
-                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                    : 'text-amber-600 hover:bg-amber-50 dark:text-amber-500 dark:hover:bg-amber-900/20'
+                `p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+                  isActive ? 'bg-white/30 text-white' : 'text-white/80 hover:bg-white/20'
                 }`
               }
-              title="פאנל מנהל"
             >
               <ShieldCheck size={17} />
               <span className="hidden sm:inline">מנהל</span>
             </NavLink>
           )}
-          <span className="text-sm font-semibold text-surface-700 dark:text-surface-200 truncate max-w-[100px]">
+          <span className="text-sm font-semibold text-white/90 truncate max-w-[90px]">
             {user?.name}
           </span>
           <button
             onClick={handleLogout}
-            className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
             title="התנתקות"
           >
-            <LogOut size={18} />
+            <LogOut size={17} />
           </button>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 px-4 py-6 pb-24 overflow-auto">
+      {/* ── Main content ── */}
+      <main className="flex-1 px-4 py-6 pb-32 overflow-auto">
         <div className="max-w-2xl mx-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* Bottom nav bar */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 bg-white dark:bg-surface-800 border-t border-surface-200 dark:border-surface-700 safe-area-bottom">
-        <div className="flex items-stretch h-16 max-w-lg mx-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
-                  isActive
-                    ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-surface-400 dark:text-surface-500 hover:text-surface-600'
-                }`
-              }
-            >
+      {/* ── BYD-style glass nav with floating + ── */}
+      <nav className="fixed bottom-0 inset-x-0 z-50">
+        <div className="max-w-2xl mx-auto px-3 pb-3">
+          <div
+            className="flex items-end h-[62px] px-2 relative rounded-2xl dark:border dark:border-surface-700/50"
+            style={{ background: 'rgba(255,255,255,0.93)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,60,130,0.14)' }}
+          >
+
+            {/* Dashboard */}
+            <NavLink to="/dashboard" className={({ isActive }) => `${navBase} ${isActive ? navActive : navInactive}`}>
               {({ isActive }) => (
                 <>
-                  <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-brand-50 dark:bg-brand-900/30' : ''}`}>
-                    <Icon size={20} />
+                  <div className={`p-1.5 rounded-xl ${isActive ? 'bg-brand-50' : ''}`}>
+                    <LayoutDashboard size={21} />
                   </div>
-                  <span>{label}</span>
+                  <span className="text-[10px] font-semibold">דשבורד</span>
                 </>
               )}
             </NavLink>
-          ))}
+
+            {/* Vehicles */}
+            <NavLink to="/vehicles" end className={({ isActive }) => `${navBase} ${isActive ? navActive : navInactive}`}>
+              {({ isActive }) => (
+                <>
+                  <div className={`p-1.5 rounded-xl ${isActive ? 'bg-brand-50' : ''}`}>
+                    <Car size={21} />
+                  </div>
+                  <span className="text-[10px] font-semibold">רכבים</span>
+                </>
+              )}
+            </NavLink>
+
+            {/* Floating + Add Vehicle */}
+            <div className="flex-1 flex flex-col items-center justify-end pb-1">
+              <NavLink
+                to="/vehicles/new"
+                className="flex items-center justify-center rounded-2xl active:scale-95 transition-transform"
+                style={{
+                  width: 52, height: 52,
+                  background: 'linear-gradient(135deg, #0066CC 0%, #00B4A0 100%)',
+                  boxShadow: '0 6px 20px rgba(0,102,204,0.4)',
+                  marginTop: -20,
+                }}
+              >
+                <Plus size={24} className="text-white" strokeWidth={2.5} />
+              </NavLink>
+              <span className="text-[10px] font-semibold text-surface-400 mt-1">הוסף</span>
+            </div>
+
+            {/* Settings */}
+            <NavLink to="/settings" className={({ isActive }) => `${navBase} ${isActive ? navActive : navInactive}`}>
+              {({ isActive }) => (
+                <>
+                  <div className={`p-1.5 rounded-xl ${isActive ? 'bg-brand-50' : ''}`}>
+                    <Settings size={21} />
+                  </div>
+                  <span className="text-[10px] font-semibold">אזור אישי</span>
+                </>
+              )}
+            </NavLink>
+
+          </div>
         </div>
       </nav>
 

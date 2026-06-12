@@ -69,11 +69,12 @@ export default function VehiclesPage() {
   );
 
   return (
-    <div className="space-y-5 fade-in" dir="rtl">
+    <div className="space-y-4 fade-in" dir="rtl">
       <div className="flex items-center justify-between pt-1">
         <h1 className="text-2xl font-bold text-surface-900 dark:text-white">הרכבים שלי</h1>
         <Link to="/vehicles/new"
-          className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 rounded-2xl shadow-md shadow-brand-500/25 transition-all active:scale-95">
+          className="flex items-center gap-1.5 text-white text-sm font-semibold px-4 py-2.5 rounded-2xl active:scale-95 transition-transform"
+          style={{ background: 'linear-gradient(135deg, #0066CC 0%, #00B4A0 100%)', boxShadow: '0 4px 14px rgba(0,102,204,0.35)' }}>
           <Plus size={16} /> הוסף רכב
         </Link>
       </div>
@@ -132,63 +133,65 @@ export default function VehiclesPage() {
 
 function VehicleCard({ vehicle, onEdit, onDelete }) {
   const status = testStatus(vehicle.testExpiry);
-  const testBadgeStyle = {
-    expired: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    soon:    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    ok:      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  };
+  const testChip = {
+    expired: { bg: '#FEE2E2', color: '#DC2626' },
+    soon:    { bg: '#FEF3C7', color: '#D97706' },
+    ok:      { bg: '#DCFCE7', color: '#16A34A' },
+  }[status] || { bg: '#F0F4F8', color: '#7896B0' };
 
   return (
-    <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl px-5 py-4 hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-sm transition-all">
+    <div className="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden transition-all hover:shadow-md"
+      style={{ boxShadow: '0 2px 12px rgba(0,60,130,0.08)' }}>
 
-      {/* Top: icon + full vehicle name */}
-      <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 mb-2">
-        <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-2xl shrink-0">🚗</div>
-        <div>
-          <p className="font-bold text-surface-900 dark:text-white leading-tight">
-            {vehicle.manufacturer} {vehicle.model}
-          </p>
-          {vehicle.nickname && <p className="text-xs text-surface-400">{vehicle.nickname}</p>}
-        </div>
-      </Link>
+      {/* BYD color band */}
+      <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #0066CC 0%, #00B4A0 100%)' }} />
 
-      {/* Action buttons row */}
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
-        <Link to={`/vehicles/${vehicle.id}`} className="text-xs text-brand-600 dark:text-brand-400 font-medium hover:underline ml-auto">
-          לפרטי הרכב ←
-        </Link>
-        <button onClick={onEdit} className="text-xs font-medium px-3 py-1 rounded-lg bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors">
-          ערוך
-        </button>
-        <button onClick={onDelete} className="text-xs font-medium px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">
-          מחק
-        </button>
-      </div>
-
-      {/* Israeli plate */}
-      <div className="flex justify-center mb-4">
-        <IsraeliPlate number={vehicle.licensePlate} />
-      </div>
-
-      {/* Info grid */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
-          <p className="text-xs text-surface-400 mb-0.5">שנת ייצור</p>
-          <p className="text-sm font-bold text-surface-800 dark:text-white">{vehicle.year}</p>
+      <div className="px-4 py-3">
+        {/* Top: icon + name + actions */}
+        <div className="flex items-center gap-3 mb-3">
+          <Link to={`/vehicles/${vehicle.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: '#EFF7FF' }}>🚗</div>
+            <div className="min-w-0">
+              <p className="font-bold text-surface-900 dark:text-white text-sm leading-tight truncate">
+                {vehicle.nickname || `${vehicle.manufacturer} ${vehicle.model}`}
+              </p>
+              <p className="text-xs text-surface-400">{vehicle.year}{vehicle.fuelType ? ` · ${vehicle.fuelType}` : ''}</p>
+            </div>
+          </Link>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={onEdit} className="text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors" style={{ background: '#F0F4F8', color: '#556F8A' }}>
+              ערוך
+            </button>
+            <button onClick={onDelete} className="text-xs font-semibold px-3 py-1.5 rounded-xl text-white transition-colors hover:opacity-90" style={{ background: '#EF4444' }}>
+              מחק
+            </button>
+          </div>
         </div>
 
-        <div className="bg-surface-50 dark:bg-surface-700/50 rounded-xl px-3 py-2.5">
-          <p className="text-xs text-surface-400 mb-0.5">טיפולים</p>
-          <p className="text-sm font-bold text-surface-800 dark:text-white">{vehicle._count?.services ?? 0}</p>
+        {/* Plate */}
+        <div className="flex justify-center mb-3">
+          <IsraeliPlate number={vehicle.licensePlate} />
         </div>
 
-        <div className={`rounded-xl px-3 py-2.5 ${status ? testBadgeStyle[status] : 'bg-surface-50 dark:bg-surface-700/50'}`}>
-          <p className="text-xs opacity-60 mb-0.5">טסט</p>
-          <p className="text-sm font-bold leading-tight">
-            {vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
-          </p>
+        {/* Info grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: '#F0F4F8' }}>
+            <p className="text-xs text-surface-400 mb-0.5">שנה</p>
+            <p className="text-sm font-bold text-surface-800 dark:text-white">{vehicle.year}</p>
+          </div>
+
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: '#EFF7FF' }}>
+            <p className="text-xs mb-0.5" style={{ color: '#4AA3F8' }}>טיפולים</p>
+            <p className="text-sm font-black" style={{ color: '#0066CC' }}>{vehicle._count?.services ?? 0}</p>
+          </div>
+
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: testChip.bg }}>
+            <p className="text-xs mb-0.5" style={{ color: testChip.color, opacity: 0.7 }}>טסט</p>
+            <p className="text-sm font-bold leading-tight" style={{ color: testChip.color }}>
+              {vehicle.testExpiry ? formatDate(vehicle.testExpiry) : '—'}
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Mileage / fuel / color */}
       {(vehicle.currentMileage || vehicle.fuelType || vehicle.color) && (
