@@ -8,8 +8,13 @@ const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 
 function createTransporter() {
   return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_APP_PASSWORD.replace(/\s/g, ''),
+    },
   });
 }
 
@@ -19,15 +24,19 @@ export async function sendEmail({ to, subject, html }) {
     return;
   }
 
-  const info = await createTransporter().sendMail({
-    from: `"מעקב טיפולים לרכב" <${GMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
-
-  console.log(`📧 Email sent to ${to}: ${subject} [${info.messageId}]`);
-  return info;
+  try {
+    const info = await createTransporter().sendMail({
+      from: `"מעקב טיפולים לרכב" <${GMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`📧 Email sent to ${to}: ${subject} [${info.messageId}]`);
+    return info;
+  } catch (err) {
+    console.error(`❌ Email failed to ${to}:`, err.message);
+    throw err;
+  }
 }
 
 // ─── עיצוב בסיסי משותף ────────────────────────────────────────────────────────
