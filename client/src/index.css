@@ -71,13 +71,10 @@
   }
   .input:focus { @apply outline-none ring-2 ring-brand-500 border-transparent; }
   .input::placeholder { @apply text-surface-400; }
-  .dark .input { @apply bg-surface-800 border-surface-700 text-surface-100; }
-  .dark .input::placeholder { @apply text-surface-500; }
 
   .label {
     @apply block text-sm font-medium text-surface-600 mb-1.5;
   }
-  .dark .label { @apply text-surface-400; }
 
   .fade-in {
     animation: fadeIn 0.3s ease-out;
