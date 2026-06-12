@@ -256,18 +256,24 @@ export default function DashboardPage() {
               {annualData.servicesList?.length > 0 && (
                 <div className="border-t border-surface-100 dark:border-surface-700 pt-3">
                   <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">טיפולים</p>
-                  <div className="space-y-1.5">
-                    {annualData.servicesList.map(s => (
-                      <div key={s.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: '#F7FAFF' }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black text-surface-600 font-mono" dir="ltr">{s.licensePlate}</span>
-                          <span className="text-[11px] text-surface-400">{formatDate(s.date)}</span>
+                  <div className="space-y-2">
+                    {annualData.servicesList.map(s => {
+                      const typeName = SERVICE_TYPES.find(t => t.value === s.serviceType)?.label ?? s.serviceType;
+                      return (
+                        <div key={s.id} className="py-2 px-3 rounded-xl" style={{ background: '#F7FAFF' }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] text-surface-500">מספר רכב: <span className="font-black text-surface-700 font-mono" dir="ltr">{s.licensePlate}</span></span>
+                            <span className="text-[11px] text-surface-400">תאריך: {formatDate(s.date)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-surface-700">{typeName}</span>
+                            <span className="text-xs font-black" style={{ color: '#0066CC' }} dir="ltr">
+                              {s.cost > 0 ? `₪${s.cost.toLocaleString('he-IL')}` : '—'}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-xs font-bold" style={{ color: '#0066CC' }} dir="ltr">
-                          {s.cost > 0 ? `₪${s.cost.toLocaleString('he-IL')}` : '—'}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -276,16 +282,22 @@ export default function DashboardPage() {
               {annualData.expensesList?.length > 0 && (
                 <div className="border-t border-surface-100 dark:border-surface-700 pt-3 mt-3">
                   <p className="text-[11px] font-bold text-surface-500 dark:text-surface-400 mb-2">הוצאות</p>
-                  <div className="space-y-1.5">
-                    {annualData.expensesList.map(e => (
-                      <div key={e.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: '#F7FAFF' }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black text-surface-600 font-mono" dir="ltr">{e.licensePlate}</span>
-                          <span className="text-[11px] text-surface-400">{formatDate(e.date)}</span>
+                  <div className="space-y-2">
+                    {annualData.expensesList.map(e => {
+                      const catName = EXPENSE_CATEGORIES.find(c => c.value === e.category)?.label ?? e.category;
+                      return (
+                        <div key={e.id} className="py-2 px-3 rounded-xl" style={{ background: '#F7FAFF' }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] text-surface-500">מספר רכב: <span className="font-black text-surface-700 font-mono" dir="ltr">{e.licensePlate}</span></span>
+                            <span className="text-[11px] text-surface-400">תאריך: {formatDate(e.date)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-surface-700">{catName}</span>
+                            <span className="text-xs font-black text-surface-800" dir="ltr">₪{e.amount.toLocaleString('he-IL')}</span>
+                          </div>
                         </div>
-                        <span className="text-xs font-bold text-surface-700" dir="ltr">₪{e.amount.toLocaleString('he-IL')}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -365,7 +377,8 @@ function IsraeliPlate({ number, compact }) {
 
 function VehicleCard({ vehicle }) {
   const status = testStatus(vehicle.testExpiry);
-  const isOverdue = vehicle.currentMileage && vehicle.lastService?.nextServiceMileage <= vehicle.currentMileage;
+  const nextMileage = vehicle.nextServiceMileage ?? vehicle.lastService?.nextServiceMileage;
+  const isOverdue = vehicle.currentMileage && nextMileage && nextMileage <= vehicle.currentMileage;
 
   const testChipStyle = {
     expired: { bg: '#FEE2E2', color: '#DC2626' },
@@ -410,10 +423,10 @@ function VehicleCard({ vehicle }) {
             <p className="text-[10px] text-surface-400 mt-0.5">ק"מ</p>
           </div>
 
-          {vehicle.lastService?.nextServiceMileage ? (
+          {nextMileage ? (
             <div className="rounded-xl px-3 py-2 text-center" style={{ background: isOverdue ? '#FEE2E2' : '#EFF7FF' }}>
               <p className="text-sm font-black" style={{ color: isOverdue ? '#DC2626' : '#0066CC' }}>
-                {formatNumber(vehicle.lastService.nextServiceMileage)}
+                {formatNumber(nextMileage)}
               </p>
               <p className="text-[10px] mt-0.5" style={{ color: isOverdue ? '#DC2626' : '#4AA3F8' }}>
                 {isOverdue ? '⚠ הגיע!' : 'טיפול הבא'}
