@@ -461,7 +461,9 @@ function InsurancesSection({ vehicleId }) {
   const fmt = d => d ? new Date(d).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' }) : '—';
   const daysLeft = d => Math.ceil((new Date(d) - new Date()) / (1000*60*60*24));
 
-  const active = list.filter(i => i.isActive);
+  // מציג כל ביטוח שלא פג תוקפו — כולל ביטוח עתידי שסומן inactive בטעות כשנוסף לפני תחילתו
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+  const active = list.filter(i => new Date(i.endDate) >= todayMidnight);
 
   if (loading) return <div className="flex justify-center py-6"><Loader2 className="animate-spin text-brand-500" size={22} /></div>;
 
@@ -499,6 +501,7 @@ function InsurancesSection({ vehicleId }) {
         const dl = daysLeft(ins.endDate);
         const urgent = dl <= 7;
         const warn   = dl <= 30;
+        const isFuture = new Date(ins.startDate) > todayMidnight;
         return (
           <InfoRow
             key={ins.id}
@@ -506,10 +509,10 @@ function InsurancesSection({ vehicleId }) {
             iconColor={ins.insuranceType === 'MANDATORY' ? 'text-blue-500' : ins.insuranceType === 'THIRD_PARTY' ? 'text-purple-500' : 'text-emerald-500'}
             iconBg={ins.insuranceType === 'MANDATORY' ? 'bg-blue-50 dark:bg-blue-900/30' : ins.insuranceType === 'THIRD_PARTY' ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'}
             title={`ביטוח ${typeLabel[ins.insuranceType]} — ${ins.company}`}
-            subtitle={`עד ${fmt(ins.endDate)}`}
-            extra={warn ? (urgent ? `⚠️ פג בעוד ${dl} ימים` : `📅 בעוד ${dl} ימים`) : null}
+            subtitle={isFuture ? `${fmt(ins.startDate)} — ${fmt(ins.endDate)}` : `עד ${fmt(ins.endDate)}`}
+            extra={isFuture ? `🗓️ עתידי — מתחיל ${fmt(ins.startDate)}` : warn ? (urgent ? `⚠️ פג בעוד ${dl} ימים` : `📅 בעוד ${dl} ימים`) : null}
             right={ins.cost ? `₪${Number(ins.cost).toLocaleString('he-IL')}` : null}
-            urgentBorder={urgent}
+            urgentBorder={urgent && !isFuture}
             onEdit={() => openEdit(ins)}
             onDelete={() => handleDelete(ins.id)}
             deleting={deletingId === ins.id}
