@@ -45,11 +45,16 @@ router.post('/', async (req, res, next) => {
     });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    // סמן ביטוח קיים מאותו סוג כלא פעיל
-    await prisma.insurance.updateMany({
-      where: { vehicleId: data.vehicleId, insuranceType: data.insuranceType, isActive: true },
-      data: { isActive: false },
-    });
+    // סמן ביטוח קיים מאותו סוג כלא פעיל — רק אם הביטוח החדש מתחיל היום או קודם
+    // (אם מתחיל עתידי, הישן עדיין תקף ויש להציגו)
+    const newStart = new Date(data.startDate);
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    if (newStart <= todayStart) {
+      await prisma.insurance.updateMany({
+        where: { vehicleId: data.vehicleId, insuranceType: data.insuranceType, isActive: true },
+        data: { isActive: false },
+      });
+    }
 
     const insurance = await prisma.insurance.create({
       data: {
