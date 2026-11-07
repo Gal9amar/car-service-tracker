@@ -21,3 +21,6 @@ auth-wal
 # Local Netlify folder
 .netlify
 .claude/
+
+# Keep the server lockfile: unpinned AWS SDK deps broke Netlify installs
+!server/package-lock.json
