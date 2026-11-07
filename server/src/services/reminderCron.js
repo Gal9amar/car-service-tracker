@@ -3,11 +3,13 @@ import cron from 'node-cron';
 import prisma from '../utils/prisma.js';
 import { sendEmail, buildReminderEmailHtml, buildInsuranceExpiryEmailHtml, buildRecallAlertEmailHtml, buildTestExpiredEmailHtml } from './emailService.js';
 import { lookupVehicle } from './vehicleLookup.js';
+import { syncTestReminder, refreshTestData } from './testReminderSync.js';
 
 const DAYS_BEFORE = 7;
 
 // ── Weekly gov data refresh ──────────────────────────────────────────────────
-async function refreshAllVehicleGovData() {
+async function refreshAllVehicleGovData({ maxMs = Infinity } = {}) {
+  const deadline = Date.now() + maxMs;
   console.log('🔄 Starting weekly gov data refresh...', new Date().toISOString());
 
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -26,6 +28,7 @@ async function refreshAllVehicleGovData() {
   let refreshed = 0, failed = 0;
 
   for (const v of vehicles) {
+    if (Date.now() > deadline) { console.log('⏱️ Time budget reached, remaining vehicles will be refreshed next run'); break; }
     try {
       const fresh = await lookupVehicle(v.licensePlate);
       if (!fresh) { failed++; continue; }
@@ -58,17 +61,7 @@ async function refreshAllVehicleGovData() {
         },
       });
 
-      if (fresh.testExpiry) {
-        const reminder = await prisma.reminder.findFirst({
-          where: { vehicleId: v.id, reminderType: 'TEST' },
-        });
-        if (reminder) {
-          await prisma.reminder.update({
-            where: { id: reminder.id },
-            data: { dueDate: new Date(fresh.testExpiry) },
-          });
-        }
-      }
+      await syncTestReminder(v.id, fresh.testExpiry);
 
       refreshed++;
       await new Promise(r => setTimeout(r, 300));
@@ -131,20 +124,30 @@ async function checkAndSendReminders() {
         vehicle: {
           select: {
             id: true, manufacturer: true, model: true,
-            licensePlate: true, currentMileage: true,
+            licensePlate: true, currentMileage: true, testExpiry: true,
             user: { select: { id: true, email: true, name: true } },
           },
         },
       },
     });
 
-    if (reminders.length === 0) {
+    // Refresh gov data for TEST reminders so we never alert about an already-renewed test
+    const fresh = [];
+    for (const r of reminders) {
+      if (r.reminderType === 'TEST') {
+        const expiry = await refreshTestData(r.vehicle, r.dueDate);
+        if (!expiry || expiry < now || expiry > soon) continue;
+      }
+      fresh.push(r);
+    }
+
+    if (fresh.length === 0) {
       console.log('✅ No upcoming reminders found.');
       return;
     }
 
     const byUser = {};
-    for (const r of reminders) {
+    for (const r of fresh) {
       const user = r.vehicle.user;
       if (!user?.email) continue;
       if (!byUser[user.email]) byUser[user.email] = { user, reminders: [] };
@@ -271,6 +274,8 @@ async function checkTestExpiry30Days() {
 
   for (const v of vehicles) {
     if (!v.user?.email) continue;
+    v.testExpiry = await refreshTestData(v);
+    if (!v.testExpiry || new Date(v.testExpiry) < now || new Date(v.testExpiry) > in30) continue;
     const daysLeft = Math.ceil((new Date(v.testExpiry) - now) / (1000 * 60 * 60 * 24));
     if (daysLeft > 30) continue;
 
@@ -331,6 +336,8 @@ async function checkTestExpiredToday() {
 
   for (const v of vehicles) {
     if (!v.user?.email) continue;
+    const expiry = await refreshTestData(v);
+    if (!expiry || expiry < todayStart || expiry >= todayEnd) continue;
     try {
       await sendEmail({
         to: v.user.email,
@@ -342,4 +349,4 @@ async function checkTestExpiredToday() {
   }
 }
 
-export { checkAndSendReminders, checkTestExpiredToday };
+export { checkAndSendReminders, checkTestExpiredToday, checkTestExpiry30Days, checkInsuranceExpiry, refreshAllVehicleGovData };

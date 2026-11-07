@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { lookupVehicle } from '../services/vehicleLookup.js';
+import { syncTestReminder } from '../services/testReminderSync.js';
 import { sendEmail, buildNewVehicleEmailHtml } from '../services/emailService.js';
 import { fetchCarImage } from '../services/carImageService.js';
 
@@ -379,18 +380,8 @@ router.post('/:id/refresh', async (req, res, next) => {
       },
     });
 
-    // Update test reminder if testExpiry changed
-    if (updated.testExpiry) {
-      const existingReminder = await prisma.reminder.findFirst({
-        where: { vehicleId: updated.id, reminderType: 'TEST' },
-      });
-      if (existingReminder) {
-        await prisma.reminder.update({
-          where: { id: existingReminder.id },
-          data: { dueDate: updated.testExpiry },
-        });
-      }
-    }
+    // Update test reminder if testExpiry changed (re-arms it when the test was renewed)
+    await syncTestReminder(updated.id, updated.testExpiry);
 
     res.json({ vehicle: parseVehicle(updated), refreshed: true });
   } catch (err) {
