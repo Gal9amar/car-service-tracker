@@ -349,4 +349,4 @@ async function checkTestExpiredToday() {
   }
 }
 
-export { checkAndSendReminders, checkTestExpiredToday, refreshAllVehicleGovData };
+export { checkAndSendReminders, checkTestExpiredToday, checkTestExpiry30Days, checkInsuranceExpiry, refreshAllVehicleGovData };
